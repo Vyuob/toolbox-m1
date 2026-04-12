@@ -1,40 +1,67 @@
 # Changelog – PentestBox
 
-Toutes les modifications notables du projet sont documentées ici.
+Toutes les modifications notables du projet sont documentees ici.
 Format : `[version] – date – description`
 
 ---
 
-## [1.0.0] – 2026-04-09 – Initialisation complète du projet
+## [1.1.0] – 2026-04-12 – Pages frontend + routes defensives + GitHub
 
-### Ajouté
+### Ajoute
+
+#### Backend
+- `backend/app/api/routes/defensive.py` – Routes SIEM mini-dashboard (metriques, etat services, series temporelles)
+- `backend/app/api/routes/pages.py` – Routes de rendu HTML (redirection racine, pages Jinja2)
+
+#### Frontend
+- `frontend/templates/modules.html` – Page Modules (lancement et suivi des scans)
+- `frontend/templates/reports.html` – Page Rapports (liste et consultation)
+- `frontend/templates/siem.html` – Page SIEM (dashboard defensif)
+- `frontend/static/css/app.css` – Styles supplementaires de l'application
+- `frontend/static/js/app.js` – Logique JS supplementaire de l'application
+
+#### Scripts
+- `scripts/start.ps1` – Script PowerShell de lancement (dev/prod/stop/logs/status/rebuild)
+- `scripts/push_gitlab.ps1` – Script PowerShell pour init Git + push
+
+#### Outils
+- `pentest_rapport_generator/` – Generateur de rapports pentest standalone (HTML/JS)
+
+### Modifie
+- Migration du depot de GitLab vers **GitHub** : https://github.com/Vyuob/toolbox-m1
+
+---
+
+## [1.0.0] – 2026-04-09 – Initialisation complete du projet
+
+### Ajoute
 
 #### Backend
 - `backend/app/main.py` – Application FastAPI avec middlewares CORS et TrustedHost
-- `backend/app/core/config.py` – Configuration centralisée via Pydantic Settings + `.env`
+- `backend/app/core/config.py` – Configuration centralisee via Pydantic Settings + `.env`
 - `backend/app/core/security.py` – JWT (HS256), bcrypt, Fernet
-- `backend/app/core/auth.py` – Dépendances FastAPI : `get_current_user`, `require_role`, `require_admin`, `require_analyst`
+- `backend/app/core/auth.py` – Dependances FastAPI : `get_current_user`, `require_role`, `require_admin`, `require_analyst`
 - `backend/app/core/database.py` – SQLAlchemy engine + `get_db()`
-- `backend/app/models/user.py` – Modèle `User` (id, username, email, hashed_pwd, role, is_active)
-- `backend/app/models/scan.py` – Modèles `ScanJob`, `Report`, `AuditLog`
+- `backend/app/models/user.py` – Modele `User` (id, username, email, hashed_pwd, role, is_active)
+- `backend/app/models/scan.py` – Modeles `ScanJob`, `Report`, `AuditLog`
 - `backend/app/api/routes/auth.py` – Routes : `/token`, `/register`, `/me`
 - `backend/app/api/routes/modules.py` – Routes : liste modules, lancement, suivi jobs
-- `backend/app/api/routes/reports.py` – Routes : génération, liste, téléchargement
+- `backend/app/api/routes/reports.py` – Routes : generation, liste, telechargement
 - `backend/app/api/routes/dashboard.py` – Route dashboard HTML + stats JSON
-- `backend/app/tasks/celery_app.py` – Instance Celery configurée
-- `backend/app/tasks/scan_tasks.py` – Tâches async : recon, scan, exploit, web_scan
-- `backend/app/tasks/report_tasks.py` – Tâche async : génération rapport
+- `backend/app/tasks/celery_app.py` – Instance Celery configuree
+- `backend/app/tasks/scan_tasks.py` – Taches async : recon, scan, exploit, web_scan
+- `backend/app/tasks/report_tasks.py` – Tache async : generation rapport
 - `backend/app/modules/offensive/recon.py` – DNS + Nmap + whois
 - `backend/app/modules/offensive/scan.py` – Nmap NSE + Nikto + SSLyze
 - `backend/app/modules/offensive/exploit.py` – SQLmap + Hydra + Metasploit
 - `backend/app/modules/offensive/web_scan.py` – OWASP ZAP + Dependency-Check
-- `backend/app/modules/offensive/post_exploit.py` – Enumération + vérification persistance
-- `backend/app/modules/defensive/siem.py` – Intégration Elasticsearch (index/search/alerts)
+- `backend/app/modules/offensive/post_exploit.py` – Enumeration + verification persistance
+- `backend/app/modules/defensive/siem.py` – Integration Elasticsearch (index/search/alerts)
 - `backend/app/modules/defensive/ids.py` – Parser alertes Snort
 - `backend/app/modules/defensive/response.py` – Blocage IP iptables + alertes SIEM
 - `backend/app/modules/defensive/forensic.py` – ClamAV + VirusTotal API
-- `backend/app/reporting/generator.py` – Génération PDF (WeasyPrint), HTML, CSV + upload MinIO
-- `backend/tests/test_api.py` – Tests d'intégration de base
+- `backend/app/reporting/generator.py` – Generation PDF (WeasyPrint), HTML, CSV + upload MinIO
+- `backend/tests/test_api.py` – Tests d'integration de base
 
 #### Frontend
 - `frontend/templates/base.html` – Layout principal avec sidebar
@@ -47,23 +74,23 @@ Format : `[version] – date – description`
 #### Docker
 - `docker/Dockerfile` – Image API FastAPI
 - `docker/Dockerfile.celery` – Image worker Celery
-- `docker/docker-compose.yml` – Stack complète : API, worker, PostgreSQL, Redis, MinIO, ELK, Kibana
+- `docker/docker-compose.yml` – Stack complete : API, worker, PostgreSQL, Redis, MinIO, ELK, Kibana
 
 #### SIEM
-- `siem/elk/logstash.conf` – Pipeline Logstash (beats + Snort + Docker → Elasticsearch)
+- `siem/elk/logstash.conf` – Pipeline Logstash (beats + Snort + Docker -> Elasticsearch)
 - `siem/elk/elasticsearch.yml` – Configuration Elasticsearch single-node
 - `siem/snort/snort.conf` – Configuration Snort 3
-- `siem/snort/local.rules` – Règles custom : scan Nmap, bruteforce SSH/HTTP, SQLi, XSS, traversal
+- `siem/snort/local.rules` – Regles custom : scan Nmap, bruteforce SSH/HTTP, SQLi, XSS, traversal
 
 #### Documentation
 - `docs/README.md` – Index de la documentation
-- `docs/architecture.md` – Architecture technique complète avec diagrammes
+- `docs/architecture.md` – Architecture technique complete avec diagrammes
 - `docs/installation.md` – Guide d'installation Docker et local
 - `docs/usage.md` – Guide d'utilisation interface + API
-- `docs/modules.md` – Référence de chaque module
-- `docs/api.md` – Référence API REST complète
-- `docs/securite.md` – Sécurité, RBAC, conformité RGPD
-- `docs/livrables.md` – Livrables pédagogiques + grille d'évaluation
+- `docs/modules.md` – Reference de chaque module
+- `docs/api.md` – Reference API REST complete
+- `docs/securite.md` – Securite, RBAC, conformite RGPD
+- `docs/livrables.md` – Livrables pedagogiques + grille d'evaluation
 
 #### Scripts
 - `scripts/start.sh` – Lancement de la stack (dev/prod/stop/logs/status)
@@ -72,17 +99,17 @@ Format : `[version] – date – description`
 #### Racine
 - `.env.example` – Template de configuration
 - `.gitignore` – Exclusions Git
-- `README.md` – Présentation du projet
-- `backend/pyproject.toml` – Dépendances Poetry
+- `README.md` – Presentation du projet
+- `backend/pyproject.toml` – Dependances Poetry
 
 ---
 
-## À venir
+## A venir
 
 - [ ] Alembic (migrations DB)
 - [ ] Endpoint de suppression de compte (RGPD)
 - [ ] Rate limiting (`slowapi`)
-- [ ] Module IAM avancé (MFA, SSO)
-- [ ] Pipeline GitLab CI/CD
-- [ ] Tests unitaires complémentaires
-- [ ] Dashboard Kibana préconfiguré (export JSON)
+- [ ] Module IAM avance (MFA, SSO)
+- [ ] Pipeline CI/CD GitHub Actions
+- [ ] Tests unitaires complementaires
+- [ ] Dashboard Kibana preconfigure (export JSON)

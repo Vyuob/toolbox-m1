@@ -1,28 +1,41 @@
 # Todo – PentestBox
 
-Suivi des tâches en cours, à faire et terminées.
-Mettre à jour ce fichier après chaque session de travail.
+Suivi des taches en cours, a faire et terminees.
+Mettre a jour ce fichier apres chaque session de travail.
 
 ---
 
 ## Sprint 1 – Architecture de base ✅
 
-- [x] Structure complète du projet (dossiers + fichiers)
-- [x] Backend FastAPI avec config, sécurité, auth, DB
-- [x] Modèles SQLAlchemy : User, ScanJob, Report, AuditLog
-- [x] Tâches Celery : recon, scan, exploit, web_scan, report
+- [x] Structure complete du projet (dossiers + fichiers)
+- [x] Backend FastAPI avec config, securite, auth, DB
+- [x] Modeles SQLAlchemy : User, ScanJob, Report, AuditLog
+- [x] Taches Celery : recon, scan, exploit, web_scan, report
 - [x] Routes API : auth, modules, reports, dashboard
-- [x] Stack Docker Compose complète
+- [x] Stack Docker Compose complete
 - [x] Configuration ELK Stack + Snort
 - [x] Frontend : base, login, dashboard, report templates
 - [x] Design System CSS dark mode
-- [x] Documentation complète (7 fichiers dans docs/)
+- [x] Documentation complete (7 fichiers dans docs/)
 - [x] Scripts start.sh et push_gitlab.sh
 - [x] .claude/changelog.md et .claude/todo.md
 
 ---
 
-## Sprint 2 – Migrations et tests 🔄
+## Sprint 2 – Pages frontend + routes defensives ✅
+
+- [x] Page **Modules** (`frontend/templates/modules.html`)
+- [x] Page **Rapports** (`frontend/templates/reports.html`)
+- [x] Page **SIEM** (`frontend/templates/siem.html`)
+- [x] Routes defensives (`backend/app/api/routes/defensive.py`)
+- [x] Routes pages HTML (`backend/app/api/routes/pages.py`)
+- [x] Scripts PowerShell (`scripts/start.ps1`, `scripts/push_gitlab.ps1`)
+- [x] CSS et JS supplementaires (`app.css`, `app.js`)
+- [x] Depot pousse sur GitHub : https://github.com/Vyuob/toolbox-m1
+
+---
+
+## Sprint 3 – Migrations et tests 🔄
 
 - [ ] Initialiser Alembic pour les migrations DB
   ```bash
@@ -31,84 +44,82 @@ Mettre à jour ce fichier après chaque session de travail.
   alembic revision --autogenerate -m "initial"
   alembic upgrade head
   ```
-- [ ] Compléter les tests unitaires (`backend/tests/`)
+- [ ] Completer les tests unitaires (`backend/tests/`)
   - [ ] Test CRUD User
   - [ ] Test lancement module + polling job
-  - [ ] Test génération rapport
+  - [ ] Test generation rapport
 - [ ] Ajouter `pytest-asyncio` pour tests async
-- [ ] Configurer CI/CD GitLab (`.gitlab-ci.yml`)
+- [ ] Configurer CI/CD GitHub Actions (`.github/workflows/ci.yml`)
 
 ---
 
-## Sprint 3 – Interface et UX 🔄
+## Sprint 4 – Interface et UX 🔄
 
-- [ ] Page **Modules** (`frontend/templates/modules.html`)
-  - Formulaire de lancement avec options dynamiques
-  - Affichage résultats en temps réel (polling JS)
-- [ ] Page **Rapports** (`frontend/templates/reports.html`)
-  - Liste des rapports avec filtres
-  - Prévisualisation HTML inline
-- [ ] Améliorer le template de rapport PDF
-  - Graphiques Matplotlib (ports ouverts, sévérités)
+- [ ] Formulaire de lancement modules avec options dynamiques
+- [ ] Affichage resultats en temps reel (polling JS)
+- [ ] Liste des rapports avec filtres
+- [ ] Previsualisation HTML inline des rapports
+- [ ] Ameliorer le template de rapport PDF
+  - Graphiques Matplotlib (ports ouverts, severites)
   - Logo + mise en page professionnelle
 
 ---
 
-## Sprint 4 – Défense et SIEM 🔄
+## Sprint 5 – Defense et SIEM 🔄
 
-- [ ] Dashboard Kibana préconfiguré (export JSON à importer)
+- [ ] Dashboard Kibana preconfigure (export JSON a importer)
   - Vue chronologique des scans
   - Alertes Snort par classification
-  - Top 10 cibles scannées
+  - Top 10 cibles scannees
 - [ ] Endpoint API pour les alertes IDS
-  - `GET /api/defensive/alerts` → alertes Snort récentes
-  - `GET /api/defensive/siem/search?q=...` → recherche ELK
-- [ ] Interface réponse active
-  - Formulaire de blocage/déblocage IP
+  - `GET /api/defensive/alerts` -> alertes Snort recentes
+  - `GET /api/defensive/siem/search?q=...` -> recherche ELK
+- [ ] Interface reponse active
+  - Formulaire de blocage/deblocage IP
 
 ---
 
-## Sprint 5 – Sécurité et production 🔄
+## Sprint 6 – Securite et production 🔄
 
 - [ ] Activer HTTPS (Nginx reverse proxy dans docker-compose)
 - [ ] Rate limiting sur `/api/auth/token` (5 tentatives/min)
 - [ ] Endpoint suppression compte RGPD
 - [ ] Rotation des tokens JWT (refresh token)
-- [ ] Scan des dépendances Python (`pip-audit`)
-- [ ] Tests de pénétration sur l'outil lui-même
+- [ ] Scan des dependances Python (`pip-audit`)
+- [ ] Tests de penetration sur l'outil lui-meme
 
 ---
 
-## Sprint 6 – Module Forensique (Bonus) 🔄
+## Sprint 7 – Module Forensique (Bonus) 🔄
 
 - [ ] Endpoint upload fichier suspect
   - `POST /api/forensic/scan` (multipart/form-data)
-- [ ] Intégration Cuckoo Sandbox (optionnel)
-- [ ] Rapport forensique dédié
+- [ ] Integration Cuckoo Sandbox (optionnel)
+- [ ] Rapport forensique dedie
 
 ---
 
-## Livrables pédagogiques 📋
+## Livrables pedagogiques 📋
 
-- [ ] **Vidéo MVP** (15-20 min)
-  - [ ] Préparer la VM cible (Metasploitable2 ou DVWA)
-  - [ ] Préparer le script de démo
-  - [ ] Enregistrer (OBS Studio recommandé)
+- [ ] **Video MVP** (15-20 min)
+  - [ ] Preparer la VM cible (Metasploitable2 ou DVWA)
+  - [ ] Preparer le script de demo
+  - [ ] Enregistrer (OBS Studio recommande)
   - [ ] Exporter en `.mp4`
   - [ ] Nommer : `PE-2526_codepromo_NomPrenom.mp4`
 
 - [ ] **Document technique final**
-  - [ ] Rédiger rendu groupe (PDF)
-  - [ ] Chaque membre rédige son rendu individuel
-  - [ ] Créer le ZIP final : `PE_2526_codepromo_noms.zip`
+  - [ ] Rediger rendu groupe (PDF)
+  - [ ] Chaque membre redige son rendu individuel
+  - [ ] Creer le ZIP final : `PE_2526_codepromo_noms.zip`
 
 ---
 
 ## Bugs connus / Points d'attention
 
-| Problème | Priorité | Assigné à |
+| Probleme | Priorite | Assigne a |
 |----------|----------|-----------|
-| Importer les modules dans celery sans circular import | Haute | Étudiant 1 |
-| WeasyPrint nécessite des dépendances système (Cairo, Pango) | Moyenne | Étudiant 1 |
-| Snort non inclus dans docker-compose (à ajouter) | Moyenne | Étudiant 2 |
-| HTTPS non activé en dev (ok) mais obligatoire en prod | Haute | Étudiant 1 |
+| Importer les modules dans celery sans circular import | Haute | Etudiant 1 |
+| WeasyPrint necessite des dependances systeme (Cairo, Pango) | Moyenne | Etudiant 1 |
+| Snort non inclus dans docker-compose (a ajouter) | Moyenne | Etudiant 2 |
+| HTTPS non active en dev (ok) mais obligatoire en prod | Haute | Etudiant 1 |

@@ -9,7 +9,10 @@
       "Bash(docker exec:*)",
       "Bash(powershell -Command \"Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'\")",
       "Bash(curl -s http://localhost:9200/_cat/indices?v)",
-      "Bash(curl -s http://localhost:9200/_cluster/health)"
+      "Bash(curl -s http://localhost:9200/_cluster/health)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ]
   }
 }
