@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rapports – PentestBox</title>
+  <title>Rapports – ToolboxV8</title>
   <link rel="stylesheet" href="/static/css/app.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
@@ -12,7 +12,7 @@
 <aside class="sidebar">
   <div class="sidebar-brand">
     <div class="brand-icon"><i data-lucide="shield-check"></i></div>
-    <div><div class="brand-name">PentestBox</div><div class="brand-sub">v1.0.0</div></div>
+    <div><div class="brand-name">ToolboxV8</div><div class="brand-sub">v1.0.0</div></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section-label">Navigation</div>
@@ -21,7 +21,6 @@
     <a href="/reports" class="nav-item active"><span class="nav-icon"><i data-lucide="file-text"></i></span> Rapports</a>
     <div class="nav-section-label" style="margin-top:16px">Défensif</div>
     <a href="/siem" class="nav-item"><span class="nav-icon"><i data-lucide="radar"></i></span> SIEM</a>
-    <a href="#" class="nav-item" onclick="window.open('http://localhost:5601','_blank')"><span class="nav-icon"><i data-lucide="external-link"></i></span> Kibana</a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">
@@ -59,14 +58,6 @@
         <div class="form-group" style="flex:2">
           <label>Titre du rapport</label>
           <input type="text" id="rpt-title" placeholder="ex: Audit réseau – Avril 2026" required />
-        </div>
-        <div class="form-group">
-          <label>Format</label>
-          <select id="rpt-format">
-            <option value="pdf">PDF</option>
-            <option value="html">HTML</option>
-            <option value="csv">CSV</option>
-          </select>
         </div>
         <div class="form-group" style="align-self:flex-end">
           <button type="submit" class="btn-launch" style="padding:12px 24px"><i data-lucide="file-plus"></i> Générer</button>
@@ -129,7 +120,7 @@
   async function viewReport(reportId) {
     try {
       const res = await fetch(`/api/reports/${reportId}/view`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
+        credentials: 'same-origin'
       });
       if (res.status === 401) { logout(); return; }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -146,7 +137,7 @@
   async function downloadReport(reportId, format) {
     try {
       const res = await fetch(`/api/reports/${reportId}/download`, {
-        headers: { 'Authorization': `Bearer ${getToken()}` }
+        credentials: 'same-origin'
       });
       if (res.status === 401) { logout(); return; }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -178,13 +169,12 @@
     e.preventDefault();
     const jobId  = parseInt(document.getElementById('rpt-job-id').value);
     const title  = document.getElementById('rpt-title').value.trim();
-    const format = document.getElementById('rpt-format').value;
     const msgEl  = document.getElementById('gen-msg');
 
     try {
       await apiFetch('/api/reports/generate', {
         method: 'POST',
-        body: JSON.stringify({ scan_job_id: jobId, title, format }),
+        body: JSON.stringify({ scan_job_id: jobId, title, format: 'pdf' }),
       });
       msgEl.innerHTML = '<span class="result-icon">✅</span> Rapport en cours de génération, actualisez dans quelques secondes.';
       msgEl.style.display = 'flex';

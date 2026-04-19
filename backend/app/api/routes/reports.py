@@ -113,13 +113,16 @@ def view_report(
     if not job:
         raise HTTPException(status_code=404, detail="Scan associé introuvable")
 
+    from app.reporting.generator import _build_tools_sections
     raw = job.result or {}
     result_data = raw.get("data", raw) if isinstance(raw, dict) and "data" in raw else raw
+    safe_result = result_data if isinstance(result_data, dict) else {}
     ctx = {
         "title": report.title,
         "generated_at": report.created_at.strftime("%d/%m/%Y %H:%M"),
         "job": job,
-        "result": result_data if isinstance(result_data, dict) else {},
+        "result": safe_result,
+        "tools_sections": _build_tools_sections(safe_result),
     }
     tpl = gen.jinja_env.get_template("report.html")
     return HTMLResponse(tpl.render(**ctx))

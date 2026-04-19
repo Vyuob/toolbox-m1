@@ -20,7 +20,7 @@ function Err    { param($msg) Write-Host "  [-] $msg" -ForegroundColor Red; exit
 function Show-Banner {
     Write-Host ""
     Write-Host "  ====================================" -ForegroundColor Red
-    Write-Host "       PentestBox v1.0.0" -ForegroundColor Red
+    Write-Host "       ToolboxV8 v1.0.0" -ForegroundColor Red
     Write-Host "    Toolbox de tests d intrusion" -ForegroundColor Red
     Write-Host "      Mastere Cybersecurite" -ForegroundColor Red
     Write-Host "  ====================================" -ForegroundColor Red
@@ -151,12 +151,12 @@ function Start-Stack {
         if ($apiReady) { Create-Admin }
 
         Write-Host ""
-        Write-Host "  ===== Stack PentestBox lancee ! =====" -ForegroundColor Green
+        Write-Host "  ===== Stack ToolboxV8 lancee ! =====" -ForegroundColor Green
         Write-Host ""
         Write-Host "  App web       : " -NoNewline -ForegroundColor White
-        Write-Host "http://localhost:8000" -ForegroundColor Cyan
+        Write-Host "http://localhost:3000" -ForegroundColor Cyan
         Write-Host "  SIEM          : " -NoNewline -ForegroundColor White
-        Write-Host "http://localhost:8000/siem" -ForegroundColor Cyan
+        Write-Host "http://localhost:3000/siem" -ForegroundColor Cyan
         Write-Host "  API Docs      : " -NoNewline -ForegroundColor White
         Write-Host "http://localhost:8000/api/docs" -ForegroundColor Cyan
         Write-Host "  Kibana        : " -NoNewline -ForegroundColor White
@@ -174,7 +174,7 @@ function Start-Stack {
         Write-Host ""
 
         Log "Ouverture du navigateur..."
-        Start-Process "http://localhost:8000/login"
+        Start-Process "http://localhost:3000/login"
     }
 }
 

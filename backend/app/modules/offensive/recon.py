@@ -32,9 +32,20 @@ class ReconModule:
         try:
             ip = socket.gethostbyname(target)
             infos = socket.getaddrinfo(target, None)
+            all_ips = sorted({i[4][0] for i in infos})
+            lines = [
+                f"; Résolution DNS pour {target}",
+                f";; ANSWER SECTION:",
+                f"{target}.    IN    A    {ip}",
+            ]
+            for extra in all_ips:
+                if extra != ip:
+                    lines.append(f"{target}.    IN    A    {extra}")
             return {
+                "command": f"resolve {target}",
+                "output": "\n".join(lines),
                 "resolved_ip": ip,
-                "all_ips": list({i[4][0] for i in infos}),
+                "all_ips": all_ips,
             }
         except socket.gaierror as e:
             logger.warning(f"DNS lookup failed for {target}: {e}")
@@ -46,9 +57,13 @@ class ReconModule:
 
         args = options.get("nmap_args", "-sV -O --top-ports 1000")
         try:
-            cmd = ["nmap"] + args.split() + [target, "-oX", "-"]
+            cmd = ["nmap"] + args.split() + [target]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            return {"raw_xml": proc.stdout, "stderr": proc.stderr}
+            return {
+                "command": " ".join(cmd),
+                "output": proc.stdout,
+                "stderr": proc.stderr,
+            }
         except subprocess.TimeoutExpired:
             return {"error": "Timeout nmap"}
         except Exception as e:

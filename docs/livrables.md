@@ -24,7 +24,7 @@ Démontrer le MVP en action devant un jury.
 ### Scénario de démo recommandé
 
 ```
-1. Connexion sur l'interface PentestBox (rôle analyst)
+1. Connexion sur l'interface ToolboxV8 (http://localhost:3000/dashboard, rôle analyst)
 2. Lancer un module Recon sur une VM cible (ex: Metasploitable2)
 3. Voir les résultats en temps réel sur le dashboard
 4. Simuler une attaque (scan vuln + exploit SQLmap)
@@ -128,7 +128,7 @@ PE_2526_codepromo_noms.zip
 
 ## Correspondance modules / cours
 
-| Élément PentestBox | Cours associés |
+| Élément ToolboxV8 | Cours associés |
 |---------------------|----------------|
 | Modules offensifs (Nmap, SQLmap, Hydra) | Sécurité offensive, Cryptologie |
 | ELK Stack + Snort | SIEM, DevSecOps |

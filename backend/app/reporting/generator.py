@@ -8,6 +8,7 @@ Stocke les fichiers dans MinIO.
 
 import csv
 import io
+import json
 import logging
 import os
 import tempfile
@@ -16,6 +17,107 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
 
 from app.core.config import settings
+
+
+# Clés reconnues par ordre de priorité pour le bloc "sortie principale"
+_MAIN_OUTPUT_KEYS = ("output", "raw_xml", "stdout")
+# Clés à masquer dans le bloc "Détails" parce que déjà rendues séparément
+_HANDLED_KEYS = {"command", "cmd", "stderr", "error", "credentials", "cracked",
+                 "output", "raw_xml", "stdout"}
+
+
+def _format_tool_data(tool_name: str, data) -> dict:
+    """Transforme les données brutes d'un outil en structure prête à afficher.
+
+    Retourne un dict :
+      name, error, command, main_output, stderr, items, extras_json
+    """
+    section = {
+        "name":        tool_name,
+        "error":       None,
+        "command":     None,
+        "main_output": None,
+        "stderr":      None,
+        "results_list": None,
+        "extras_json": None,
+    }
+
+    if data is None:
+        return section
+
+    # Valeur brute string = on la met telle quelle dans main_output
+    if isinstance(data, str):
+        section["main_output"] = data
+        return section
+
+    # Liste = results_list (ex. cracked credentials déjà listées)
+    if isinstance(data, list):
+        section["results_list"] = [str(x) for x in data]
+        return section
+
+    if not isinstance(data, dict):
+        section["main_output"] = str(data)
+        return section
+
+    # --- Dict : extraction structurée ---
+    err = data.get("error")
+    if err:
+        section["error"] = str(err)
+
+    cmd = data.get("command") or data.get("cmd")
+    if cmd:
+        section["command"] = str(cmd)
+
+    # Sortie principale : première clé connue qui a du contenu non-vide
+    for key in _MAIN_OUTPUT_KEYS:
+        val = data.get(key)
+        if isinstance(val, str) and val.strip():
+            section["main_output"] = val
+            break
+
+    stderr = data.get("stderr")
+    if isinstance(stderr, str) and stderr.strip():
+        section["stderr"] = stderr
+
+    items = data.get("credentials") or data.get("cracked")
+    if isinstance(items, list) and items:
+        section["results_list"] = [str(x) for x in items]
+
+    # Reste = tout sauf les clés déjà traitées
+    extras = {k: v for k, v in data.items() if k not in _HANDLED_KEYS}
+    if extras:
+        try:
+            section["extras_json"] = json.dumps(extras, indent=2, ensure_ascii=False, default=str)
+        except Exception:
+            section["extras_json"] = str(extras)
+
+    # Si aucune sortie principale trouvée mais qu'on a des clés exploitables,
+    # on synthétise un bloc lisible à partir des extras (évite un rapport vide).
+    if not section["main_output"] and not section["results_list"] and extras:
+        lines = []
+        for k, v in extras.items():
+            if isinstance(v, (str, int, float, bool)):
+                lines.append(f"{k}: {v}")
+            elif isinstance(v, list):
+                lines.append(f"{k}: {', '.join(str(x) for x in v)}")
+        if lines:
+            section["main_output"] = "\n".join(lines)
+
+    return section
+
+
+def _build_tools_sections(result_data) -> list[dict]:
+    """Itère sur la collection d'outils d'un job et retourne une liste
+    de sections normalisées exploitables par le template / ReportLab."""
+    if not isinstance(result_data, dict):
+        return []
+    sections = []
+    for tool, data in result_data.items():
+        # 'target' et similaires (scalaires d'info) ne sont pas des outils à déployer
+        if tool in ("target", "mode") and not isinstance(data, (dict, list)):
+            continue
+        sections.append(_format_tool_data(tool, data))
+    return sections
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +146,13 @@ class ReportGenerator:
             raw = job.result or {}
             result_data = raw.get("data", raw) if isinstance(raw, dict) and "data" in raw else raw
 
+            safe_result = result_data if isinstance(result_data, dict) else {}
             context = {
                 "title": f"Rapport Pentest – {job.module.upper()} sur {job.target}",
                 "generated_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
                 "job": job,
-                "result": result_data if isinstance(result_data, dict) else {},
+                "result": safe_result,
+                "tools_sections": _build_tools_sections(safe_result),
             }
 
             if fmt == "pdf":
@@ -112,7 +216,7 @@ class ReportGenerator:
         doc = SimpleDocTemplate(
             pdf_path, pagesize=A4,
             rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2.5*cm,
-            title=context["title"], author="PentestBox",
+            title=context["title"], author="ToolboxV8",
         )
 
         ss = getSampleStyleSheet()
@@ -147,12 +251,15 @@ class ReportGenerator:
             fontSize=10, textColor=TEXT, leading=14, leftIndent=8, rightIndent=8,
             spaceBefore=4, spaceAfter=4)
 
+        from reportlab.platypus import Preformatted
+
         story = []
         job = context["job"]
         result = context.get("result", {}) or {}
+        tools_sections: list[dict] = context.get("tools_sections") or []
 
         # ── HEADER (cover) ─────────────────────────────────────────
-        story.append(Paragraph("PENTESTBOX • RAPPORT AUTOMATISÉ", eyebrow))
+        story.append(Paragraph("TOOLBOXV8 • RAPPORT AUTOMATISÉ", eyebrow))
         story.append(Paragraph(context["title"], title_st))
         story.append(Paragraph(
             "Audit de sécurité offensif – résultats détaillés et recommandations.",
@@ -214,7 +321,7 @@ class ReportGenerator:
         # ── STATISTIQUES ──────────────────────────────────────────
         story.append(Paragraph("Statistiques", h2_st))
         stat_rows = [[
-            Paragraph(f"<b><font size=14 color='#1f3b82'>{len(result)}</font></b><br/>"
+            Paragraph(f"<b><font size=14 color='#1f3b82'>{len(tools_sections)}</font></b><br/>"
                       f"<font size=7 color='#5c6b7a'>OUTILS UTILISÉS</font>", body_st),
             Paragraph(f"<b><font size=14 color='#1f3b82'>{job.module.upper()}</font></b><br/>"
                       f"<font size=7 color='#5c6b7a'>MODULE</font>", body_st),
@@ -237,32 +344,69 @@ class ReportGenerator:
 
         # ── DÉROULÉ TECHNIQUE & PREUVES ───────────────────────────
         story.append(Paragraph("Déroulé technique &amp; preuves", h2_st))
-        if not result:
+
+        subh_st = ParagraphStyle("subh", parent=ss["Normal"],
+            fontSize=8, textColor=MUTED, spaceBefore=6, spaceAfter=2,
+            fontName="Helvetica-Bold", leading=10)
+        err_st = ParagraphStyle("err", parent=body_st,
+            textColor=colors.HexColor("#991b1b"),
+            backColor=colors.HexColor("#fef2f2"),
+            borderPadding=(6, 6, 6, 8), leftIndent=0,
+            spaceAfter=6)
+        cmd_st = ParagraphStyle("cmd", parent=body_st, fontName="Courier", fontSize=8.5,
+            backColor=colors.HexColor("#f1f5f9"), borderPadding=(4, 4, 4, 6), leading=12)
+        cred_st = ParagraphStyle("cred", parent=body_st, fontName="Courier", fontSize=8.5,
+            textColor=colors.HexColor("#047857"), leading=12, leftIndent=14, spaceAfter=2)
+        pre_st = ParagraphStyle("pre", parent=ss["Code"],
+            fontSize=7.5, textColor=CODE_FG, backColor=CODE_BG,
+            borderPadding=8, leading=10,
+            fontName="Courier", leftIndent=0, spaceAfter=6)
+
+        def _clip(text: str, limit: int = 20000) -> str:
+            if text is None:
+                return ""
+            if len(text) > limit:
+                return text[:limit] + "\n[…] (tronqué à %d caractères)" % limit
+            return text
+
+        if not tools_sections:
             story.append(Paragraph("<i>Aucune donnée collectée.</i>", body_st))
         else:
-            for tool, data in result.items():
-                story.append(Paragraph(f"{tool.upper()}", h3_st))
-                story.append(Paragraph(
-                    f"Résultats produits par l'outil <font face='Courier'>{tool}</font> :",
-                    muted_st))
-                v_str = str(data)
-                if len(v_str) > 1500:
-                    v_str = v_str[:1500] + "\n[…] (tronqué)"
-                v_str = v_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                v_str = v_str.replace("\n", "<br/>")
-                story.append(Paragraph(v_str, code_st))
-                story.append(Spacer(1, 6))
+            for t in tools_sections:
+                story.append(Paragraph(t["name"].upper(), h3_st))
+                if t["error"]:
+                    story.append(Paragraph(f"<b>Erreur :</b> {t['error']}", err_st))
+                if t["command"]:
+                    escaped_cmd = t["command"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                    story.append(Paragraph(f"<b>Commande :</b> {escaped_cmd}", cmd_st))
+                if t["main_output"]:
+                    story.append(Paragraph("SORTIE CONSOLE", subh_st))
+                    story.append(Preformatted(_clip(t["main_output"]), pre_st, maxLineLength=95))
+                if t["results_list"]:
+                    story.append(Paragraph(f"RÉSULTATS ({len(t['results_list'])})", subh_st))
+                    for it in t["results_list"]:
+                        escaped = str(it).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        story.append(Paragraph(f"• {escaped}", cred_st))
+                if t["stderr"]:
+                    story.append(Paragraph("ERREURS / STDERR", subh_st))
+                    story.append(Preformatted(_clip(t["stderr"], 4000), pre_st, maxLineLength=95))
+                if t["extras_json"]:
+                    story.append(Paragraph("DÉTAILS COMPLÉMENTAIRES", subh_st))
+                    story.append(Preformatted(_clip(t["extras_json"], 6000), pre_st, maxLineLength=95))
+                if not any([t["error"], t["command"], t["main_output"], t["results_list"], t["stderr"], t["extras_json"]]):
+                    story.append(Paragraph("<i>Aucune donnée retournée par cet outil.</i>", muted_st))
+                story.append(Spacer(1, 8))
 
         # ── TABLEAU SYNTHÉTIQUE ───────────────────────────────────
         story.append(Paragraph("Tableau synthétique", h2_st))
         table_data = [["ID", "Outil", "Type", "Statut"]]
-        if result:
-            for i, (tool, _) in enumerate(result.items(), start=1):
+        if tools_sections:
+            for i, t in enumerate(tools_sections, start=1):
                 table_data.append([
                     f"R-{i:03d}",
-                    str(tool),
+                    str(t["name"]),
                     str(job.module),
-                    "Collecté",
+                    "Erreur" if t["error"] else "Collecté",
                 ])
         else:
             table_data.append(["—", "—", "—", "—"])
@@ -301,7 +445,7 @@ class ReportGenerator:
         story.append(Paragraph(
             "Les données brutes des outils sont incluses dans la section "
             "« Déroulé technique &amp; preuves » ci-dessus. Les logs d'exécution "
-            "complets sont disponibles dans l'interface PentestBox via le bouton "
+            "complets sont disponibles dans l'interface ToolboxV8 via le bouton "
             "« Voir » du job correspondant.", muted_st))
 
         # ── FOOTER ────────────────────────────────────────────────
@@ -310,7 +454,7 @@ class ReportGenerator:
             canvas.setFont("Helvetica", 7.5)
             canvas.setFillColor(MUTED)
             canvas.drawString(2*cm, 1.2*cm,
-                f"PentestBox – Mastère Cybersécurité – {context['generated_at']}")
+                f"ToolboxV8 – Mastère Cybersécurité – {context['generated_at']}")
             canvas.drawRightString(A4[0] - 2*cm, 1.2*cm, f"Page {doc_.page}")
             canvas.setStrokeColor(BORDER)
             canvas.line(2*cm, 1.6*cm, A4[0] - 2*cm, 1.6*cm)

@@ -1,6 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+import os
+import re
+import uuid
+from pathlib import Path
 from typing import Optional
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_analyst, get_current_user
@@ -9,6 +14,10 @@ from app.models.scan import ScanJob, Report
 from app.models.user import User
 
 router = APIRouter()
+
+WORDLIST_DIR = Path("/tmp/wordlists")
+WORDLIST_DIR.mkdir(parents=True, exist_ok=True)
+MAX_WORDLIST_BYTES = 200 * 1024 * 1024  # 200 MB
 
 MODULES = {
     "recon":       "tasks.run_recon",
@@ -35,24 +44,89 @@ class JobOut(BaseModel):
         from_attributes = True
 
 
+class WordlistUploaded(BaseModel):
+    path: str
+    filename: str
+    size: int
+    lines: int
+
+
+@router.post("/wordlist", response_model=WordlistUploaded, status_code=201)
+async def upload_wordlist(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_analyst),
+):
+    """Accepte un fichier texte (liste d'utilisateurs, de passwords ou wordlist)
+    et le stocke dans le volume partagé /tmp/wordlists (accessible au worker)."""
+    raw_name = Path(file.filename or "wordlist.txt").name
+    safe_name = re.sub(r"[^A-Za-z0-9._-]", "_", raw_name)[:80] or "wordlist.txt"
+    uid = uuid.uuid4().hex[:12]
+    dest = WORDLIST_DIR / f"{uid}_{safe_name}"
+
+    written = 0
+    lines = 0
+    try:
+        with dest.open("wb") as fh:
+            while True:
+                chunk = await file.read(1024 * 256)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > MAX_WORDLIST_BYTES:
+                    fh.close()
+                    dest.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Fichier trop volumineux (max {MAX_WORDLIST_BYTES // (1024*1024)} MB)",
+                    )
+                fh.write(chunk)
+                lines += chunk.count(b"\n")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"Upload impossible : {exc}")
+
+    # Décompte final : si pas de saut de ligne final, on ajoute 1
+    try:
+        with dest.open("rb") as fh:
+            fh.seek(max(0, written - 1))
+            last = fh.read(1)
+        if last and last != b"\n":
+            lines += 1
+    except Exception:
+        pass
+
+    return WordlistUploaded(
+        path=str(dest),
+        filename=safe_name,
+        size=written,
+        lines=lines,
+    )
+
+
 @router.get("/")
 def list_modules():
     return {
         "modules": [
             {"name": "recon",    "description": "Reconnaissance OSINT & Nmap"},
             {"name": "scan",     "description": "Scan de vulnérabilités (OpenVAS/Nessus/Nikto)"},
-            {"name": "exploit",  "description": "Exploitation (Metasploit, SQLmap, Hydra)"},
+            {"name": "exploit",  "description": "Exploitation (Metasploit, SQLmap, Hydra, John the Ripper)"},
             {"name": "web_scan", "description": "Analyse Web/API (OWASP ZAP, SSLyze)"},
         ]
     }
 
 
-def _validate_target(target: str) -> str | None:
+def _validate_target(target: str, module: str = "", options: dict | None = None) -> str | None:
     """Valide le format de la cible. Retourne un message d'erreur ou None si valide."""
     import re
     t = target.strip()
     if not t:
         return "La cible ne peut pas etre vide."
+    # John the Ripper : la cible est un hash (ou un chemin de fichier de hashes),
+    # pas une IP / domaine / URL. On accepte tout non-vide.
+    if module == "exploit" and (options or {}).get("mode") == "john":
+        return None
     # URL (http/https) — accepté pour SQLmap, ZAP, etc.
     if re.match(r"^https?://", t):
         return None
@@ -81,7 +155,7 @@ def launch_module(
         raise HTTPException(status_code=400, detail=f"Module inconnu : {payload.module}")
 
     # Validation de la cible
-    target_err = _validate_target(payload.target)
+    target_err = _validate_target(payload.target, payload.module, payload.options)
     if target_err:
         # Créer un job en erreur pour tracer l'anomalie
         import uuid

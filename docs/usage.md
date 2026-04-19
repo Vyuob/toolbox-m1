@@ -1,10 +1,14 @@
-# Guide d'Utilisation – PentestBox
+# Guide d'Utilisation – ToolboxV8
 
 ## 1. Connexion
 
-Accéder à : `http://localhost:8000/api/dashboard/`
+Accéder à : `http://localhost:3000/dashboard` (redirige vers `/login` si non authentifié).
 
-Se connecter avec vos identifiants. Le token JWT est stocké automatiquement dans le navigateur.
+Se connecter avec vos identifiants via le formulaire du service **web**. Celui-ci effectue `POST /login` qui appelle en interne `POST /api/auth/token` et **pose le JWT dans un cookie `HttpOnly`** (`access_token=...`).
+
+> Le cookie HttpOnly n'est **pas** accessible en JavaScript côté navigateur : c'est volontairement plus sûr que l'ancien stockage en `localStorage`, car cela bloque l'exfiltration en cas de faille XSS.
+
+Pour les **clients externes** (scripts, CI, Postman…), il reste toujours possible de récupérer un JWT classique avec `POST /api/auth/token` et de l'envoyer via l'en-tête `Authorization: Bearer <token>`.
 
 ---
 
@@ -29,6 +33,27 @@ Le dashboard affiche :
 5. Cliquer sur **Lancer**
 
 Le job s'exécute en arrière-plan. Son statut se met à jour automatiquement.
+
+### Profils par chips
+
+Les modules offensifs proposent désormais des **profils prédéfinis sous forme de chips**, plus besoin d'éditer la ligne de commande :
+
+- **Nikto** : Quick / Standard / Full / Evasion
+- **SSLyze** : Cert / Standard / Full
+- **SQLmap** : Quick / Standard / Aggressive / Dump
+- **MSF (Metasploit)** : Handler / EternalBlue / PortScan / SMB
+- **ZAP Spider** : Quick / Standard / Deep
+- **ZAP Active** : Quick / OWASP / Full
+
+Il suffit de cliquer sur la chip correspondante pour charger les bons paramètres.
+
+### Wordlists custom (Hydra / John)
+
+Les modules **Hydra** et **John** acceptent 3 sources de wordlist au choix :
+
+1. Un **fichier uploadé** via `POST /api/modules/wordlist` (stocké dans le volume partagé `wordlists_data`)
+2. Une **liste manuelle** (saisie dans l'UI, un mot par ligne)
+3. La **rockyou.txt** préinstallée dans l'image worker Kali
 
 ### Via l'API
 
@@ -72,7 +97,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/modules/jobs/1
 ## 6. Générer un rapport
 
 ```bash
-# Générer un rapport PDF depuis un job terminé
+# Générer un rapport PDF depuis un job terminé (ReportLab)
 curl -X POST http://localhost:8000/api/reports/generate \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -82,6 +107,8 @@ curl -X POST http://localhost:8000/api/reports/generate \
 curl -H "Authorization: Bearer $TOKEN" \
   http://localhost:8000/api/reports/1/download -o rapport.pdf
 ```
+
+> Les rapports sont générés en **PDF** via **ReportLab**.
 
 ---
 

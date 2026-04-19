@@ -128,12 +128,18 @@
     text-align: center;
   }
   .recos li { margin-bottom: 0.4rem; }
+  .finding p.err { color:#991b1b; margin:.3rem 0; padding:.4rem .7rem; background:#fef2f2; border-left:3px solid #991b1b; border-radius:4px; font-size:.86rem; }
+  .finding p.cmd { margin:.4rem 0; font-size:.85rem; }
+  .finding p.cmd code { background:#f1f5f9; padding:.15rem .4rem; border-radius:3px; border:1px solid #e2e8f0; }
+  .finding ul.creds { margin:.4rem 0 .6rem 1.2rem; font-size:.84rem; }
+  .finding ul.creds li code { background:#ecfdf5; padding:.1rem .35rem; border-radius:3px; border:1px solid #a7f3d0; color:#047857; }
+  .subh { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; margin:.6rem 0 .25rem; font-weight:600; }
 </style>
 </head>
 <body>
 
 <header class="cover">
-  <p class="eyebrow">PentestBox • Rapport automatisé</p>
+  <p class="eyebrow">ToolboxV8 • Rapport automatisé</p>
   <h1>{{ title }}</h1>
   <p style="margin:.3rem 0;color:var(--muted)">Audit de sécurité offensif – résultats détaillés et recommandations.</p>
   <div class="meta">
@@ -159,7 +165,7 @@
 <section>
   <h2>Statistiques</h2>
   <div class="stats">
-    <div class="stat-card"><span class="num">{{ result|length }}</span><span class="lbl">Outils utilisés</span></div>
+    <div class="stat-card"><span class="num">{{ tools_sections|length }}</span><span class="lbl">Outils utilisés</span></div>
     <div class="stat-card"><span class="num">{{ job.module|upper }}</span><span class="lbl">Module</span></div>
     <div class="stat-card"><span class="num">{{ job.status }}</span><span class="lbl">Statut final</span></div>
   </div>
@@ -167,12 +173,44 @@
 
 <section>
   <h2>Déroulé technique &amp; preuves</h2>
-  {% if result %}
-    {% for tool, data in result.items() %}
+  {% if tools_sections %}
+    {% for t in tools_sections %}
       <article class="finding">
-        <h3>{{ tool|upper }} <span class="badge badge--info">Outil</span></h3>
-        <p style="color:var(--muted);font-size:.82rem;margin-top:.2rem">Résultats produits par l'outil <code>{{ tool }}</code> :</p>
-        <pre><code>{{ data }}</code></pre>
+        <h3>{{ t.name|upper }} <span class="badge badge--info">Outil</span></h3>
+
+        {% if t.error %}
+          <p class="err"><strong>Erreur :</strong> {{ t.error }}</p>
+        {% endif %}
+
+        {% if t.command %}
+          <p class="cmd"><strong>Commande :</strong> <code>{{ t.command }}</code></p>
+        {% endif %}
+
+        {% if t.main_output %}
+          <div class="subh">Sortie console</div>
+          <pre><code>{{ t.main_output }}</code></pre>
+        {% endif %}
+
+        {% if t.results_list %}
+          <div class="subh">Résultats ({{ t.results_list|length }})</div>
+          <ul class="creds">
+            {% for line in t.results_list %}<li><code>{{ line }}</code></li>{% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if t.stderr %}
+          <div class="subh">Erreurs / stderr</div>
+          <pre><code>{{ t.stderr }}</code></pre>
+        {% endif %}
+
+        {% if t.extras_json %}
+          <div class="subh">Détails complémentaires</div>
+          <pre><code>{{ t.extras_json }}</code></pre>
+        {% endif %}
+
+        {% if not (t.error or t.command or t.main_output or t.results_list or t.stderr or t.extras_json) %}
+          <p style="color:var(--muted);font-size:.82rem"><em>Aucune donnée retournée par cet outil.</em></p>
+        {% endif %}
       </article>
     {% endfor %}
   {% else %}
@@ -187,13 +225,16 @@
       <tr><th>ID</th><th>Outil</th><th>Type</th><th>Statut</th></tr>
     </thead>
     <tbody>
-      {% if result %}
-        {% for tool, _ in result.items() %}
+      {% if tools_sections %}
+        {% for t in tools_sections %}
         <tr>
           <td>R-{{ "%03d"|format(loop.index) }}</td>
-          <td><code>{{ tool }}</code></td>
+          <td><code>{{ t.name }}</code></td>
           <td>{{ job.module }}</td>
-          <td><span class="badge badge--info">Collecté</span></td>
+          <td>
+            {% if t.error %}<span class="badge badge--high">Erreur</span>
+            {% else %}<span class="badge badge--info">Collecté</span>{% endif %}
+          </td>
         </tr>
         {% endfor %}
       {% else %}
@@ -218,12 +259,12 @@
   <h2>Annexes</h2>
   <p style="color:var(--muted);font-size:.82rem">
     Les données brutes des outils sont incluses dans la section "Déroulé technique &amp; preuves" ci-dessus.
-    Les logs d'exécution complets sont disponibles dans l'interface PentestBox via le bouton « Voir » du job correspondant.
+    Les logs d'exécution complets sont disponibles dans l'interface ToolboxV8 via le bouton « Voir » du job correspondant.
   </p>
 </section>
 
 <div class="footer">
-  PentestBox – Mastère Cybersécurité – Rapport généré automatiquement le {{ generated_at }}
+  ToolboxV8 – Mastère Cybersécurité – Rapport généré automatiquement le {{ generated_at }}
 </div>
 
 </body>

@@ -1,23 +1,14 @@
-/* PentestBox – main.js */
+/* ToolboxV8 – main.js */
 
 const API_BASE = '/api';
 
-/* ---- Auth helpers ---- */
-function getToken() {
-  return localStorage.getItem('access_token');
-}
-
-function authHeaders() {
-  const token = getToken();
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
+/* ---- API fetch (cookie HttpOnly envoyé automatiquement) ---- */
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'same-origin',
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders(),
       ...(options.headers || {}),
     },
   });
@@ -75,7 +66,6 @@ function toast(message, type = 'info') {
 
 /* ---- Init ---- */
 document.addEventListener('DOMContentLoaded', () => {
-  // Mark active nav link
   const path = window.location.pathname;
   document.querySelectorAll('.nav-link').forEach(link => {
     if (path.startsWith(link.getAttribute('href'))) {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Modules – PentestBox</title>
+  <title>Modules – ToolboxV8</title>
   <link rel="stylesheet" href="/static/css/app.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
@@ -12,7 +12,7 @@
 <aside class="sidebar">
   <div class="sidebar-brand">
     <div class="brand-icon"><i data-lucide="shield-check"></i></div>
-    <div><div class="brand-name">PentestBox</div><div class="brand-sub">v1.0.0</div></div>
+    <div><div class="brand-name">ToolboxV8</div><div class="brand-sub">v1.0.0</div></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section-label">Navigation</div>
@@ -22,9 +22,6 @@
     <div class="nav-section-label" style="margin-top:16px">Défensif</div>
     <a href="/siem" class="nav-item">
       <span class="nav-icon"><i data-lucide="radar"></i></span> SIEM
-    </a>
-    <a href="#" class="nav-item" onclick="window.open('http://localhost:5601','_blank')">
-      <span class="nav-icon"><i data-lucide="external-link"></i></span> Kibana
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -73,7 +70,7 @@
           <div class="mc-icon" style="background:rgba(239,68,68,.15);color:#f87171"><i data-lucide="zap" class="icon-lg"></i></div>
           <div class="mc-body">
             <div class="mc-name">Exploitation</div>
-            <div class="mc-desc">SQLmap · Hydra · Metasploit</div>
+            <div class="mc-desc">SQLmap · Hydra · Metasploit · John</div>
           </div>
           <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
         </div>
@@ -148,11 +145,11 @@
                     <span class="tdot tdot--yellow"></span>
                     <span class="tdot tdot--green"></span>
                   </div>
-                  <span class="terminal-title" id="term-title">bash — pentestbox@kali</span>
+                  <span class="terminal-title" id="term-title">bash — toolboxv8@kali</span>
                 </div>
                 <div class="terminal-body" id="term-body">
                   <div class="term-line">
-                    <span class="term-prompt">pentestbox@kali:~$</span>
+                    <span class="term-prompt">toolboxv8@kali:~$</span>
                     <span class="term-cursor"> █</span>
                   </div>
                 </div>
@@ -192,6 +189,93 @@
   </div>
 </main>
 
+<!-- ── Modal : saisie manuelle d'une liste (utilisateurs / mots de passe / wordlist) ── -->
+<div id="wl-modal" class="wl-modal" aria-hidden="true">
+  <div class="wl-modal-backdrop" onclick="closeWordlistModal()"></div>
+  <div class="wl-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="wl-modal-title">
+    <div class="wl-modal-head">
+      <h3 id="wl-modal-title">Liste manuelle</h3>
+      <button type="button" class="wl-modal-close" onclick="closeWordlistModal()" title="Fermer">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="wl-modal-body">
+      <p class="wl-modal-hint">Entrez une valeur par ligne (séparées par un retour à la ligne).</p>
+      <textarea id="wl-modal-textarea" rows="14" placeholder="admin&#10;root&#10;user1&#10;user2"></textarea>
+      <div class="wl-modal-count" id="wl-modal-count">0 entrée(s)</div>
+    </div>
+    <div class="wl-modal-foot">
+      <button type="button" class="btn-sm" onclick="closeWordlistModal()">Annuler</button>
+      <button type="button" class="btn-sm btn-primary" onclick="saveWordlistModal()">
+        <i data-lucide="check"></i> Valider
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ── Wordlist picker ── */
+.wl-picker { margin-bottom: 14px; }
+.wl-picker-label { display:flex; align-items:center; gap:6px; font-size:.82rem; font-weight:600; color:#cbd5e1; margin-bottom:6px; letter-spacing:.3px; }
+.wl-picker-label svg { width: 14px; height: 14px; }
+.wl-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.wl-summary {
+  display:flex; align-items:center; gap:6px;
+  padding: 8px 10px; border-radius: 8px;
+  background: rgba(59,130,246,.08);
+  border: 1px dashed rgba(59,130,246,.25);
+  font-size: .8rem; color: #93c5fd;
+  min-height: 34px;
+}
+.wl-summary.wl-empty { background: rgba(71,85,105,.15); border-color: rgba(71,85,105,.3); color: #94a3b8; }
+.wl-summary svg { width: 14px; height: 14px; }
+
+/* ── Modal ── */
+.wl-modal { position: fixed; inset: 0; display: none; z-index: 9999; align-items: center; justify-content: center; }
+.wl-modal.open { display: flex; }
+.wl-modal-backdrop { position: absolute; inset: 0; background: rgba(3,7,18,.72); backdrop-filter: blur(4px); }
+.wl-modal-dialog {
+  position: relative; z-index: 1;
+  width: min(92vw, 560px);
+  background: #111827;
+  border: 1px solid rgba(239,68,68,.25);
+  border-radius: 14px;
+  box-shadow: 0 25px 60px rgba(0,0,0,.6), 0 0 40px rgba(239,68,68,.08);
+  display: flex; flex-direction: column;
+  max-height: 85vh;
+}
+.wl-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.wl-modal-head h3 { font-size: 1.05rem; font-weight: 700; color: #f1f5f9; }
+.wl-modal-close {
+  background: none; border: none; cursor: pointer; padding: 6px;
+  color: #64748b; border-radius: 6px;
+}
+.wl-modal-close:hover { color: #e2e8f0; background: rgba(255,255,255,.05); }
+.wl-modal-close svg { width: 18px; height: 18px; }
+.wl-modal-body { padding: 18px 22px; overflow-y: auto; }
+.wl-modal-hint { font-size: .82rem; color: #94a3b8; margin-bottom: 10px; }
+.wl-modal-body textarea {
+  width: 100%; padding: 12px;
+  background: #0b1220; border: 1px solid rgba(51,65,85,.6);
+  border-radius: 8px; color: #e2e8f0; font-family: monospace; font-size: .88rem;
+  resize: vertical; outline: none;
+}
+.wl-modal-body textarea:focus { border-color: rgba(239,68,68,.5); box-shadow: 0 0 0 3px rgba(239,68,68,.08); }
+.wl-modal-count { margin-top: 8px; font-size: .78rem; color: #64748b; text-align: right; }
+.wl-modal-foot {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 22px; border-top: 1px solid rgba(255,255,255,.07);
+}
+.btn-sm.btn-primary {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: transparent; color: #fff;
+}
+.btn-sm.btn-primary:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; }
+</style>
+
 <script src="/static/js/app.js"></script>
 <script>
 requireAuth();
@@ -223,17 +307,20 @@ const presets = {
     aggressive: { name: 'Aggressive', icon: 'flame',    desc: 'Niveau 5 max, 10 threads, tamper anti-WAF',          args: '-u {target} --batch --level=5 --risk=3 --random-agent --threads=10 --tamper=space2comment' },
     dump:       { name: 'Dump DB',    icon: 'database', desc: 'Énumère bases, tables et dump toutes les données',   args: '-u {target} --batch --dbs --tables --dump' },
   },
-  hydra: {
-    ssh:  { name: 'SSH',       icon: 'lock',     desc: 'Brute-force SSH (port 22), 4 threads',                args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} ssh -t 4' },
-    ftp:  { name: 'FTP',       icon: 'folder',   desc: 'Brute-force FTP (port 21)',                           args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} ftp -t 4' },
-    http: { name: 'HTTP form', icon: 'globe',    desc: 'Brute-force formulaire HTTP POST (web login)',        args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt {target} http-post-form "/login:user=^USER^&pass=^PASS^:F=incorrect"' },
-    rdp:  { name: 'RDP',       icon: 'monitor',  desc: 'Brute-force Windows RDP (port 3389)',                 args: '-L /usr/share/wordlists/users.txt -P /usr/share/wordlists/rockyou.txt rdp://{target} -t 1' },
-  },
+  // Hydra : plus de presets de commande brute. Le choix du service / des
+  // wordlists passe par le formulaire structuré (wl-picker + modal).
   msf: {
     handler:  { name: 'Handler',     icon: 'crosshair',     desc: 'Reverse shell handler générique sur 0.0.0.0:4444',  args: 'use exploit/multi/handler\nset PAYLOAD generic/shell_reverse_tcp\nset LHOST 0.0.0.0\nset LPORT 4444\nrun' },
     eternal:  { name: 'EternalBlue', icon: 'skull',         desc: 'Exploit MS17-010 (Windows SMBv1, payload meterpreter)', args: 'use exploit/windows/smb/ms17_010_eternalblue\nset RHOSTS {target}\nset PAYLOAD windows/x64/meterpreter/reverse_tcp\nrun' },
     portscan: { name: 'PortScan',    icon: 'search',        desc: 'Scanner TCP auxiliaire (1-65535)',                    args: 'use auxiliary/scanner/portscan/tcp\nset RHOSTS {target}\nset PORTS 1-65535\nrun' },
     smb:      { name: 'SMB Vuln',    icon: 'octagon-alert', desc: 'Scanner de vulnérabilités SMB (MS17-010)',            args: 'use auxiliary/scanner/smb/smb_ms17_010\nset RHOSTS {target}\nrun' },
+  },
+  john: {
+    auto:   { name: 'Auto',      icon: 'wand',          desc: 'Détection automatique du format + wordlist rockyou',  args: 'john --wordlist=/usr/share/wordlists/rockyou.txt {hashfile}' },
+    md5:    { name: 'MD5',       icon: 'hash',          desc: 'Hashes MD5 bruts (raw-md5)',                          args: 'john --format=raw-md5 --wordlist=/usr/share/wordlists/rockyou.txt {hashfile}' },
+    sha:    { name: 'SHA-512',   icon: 'fingerprint',   desc: 'Hashes sha512crypt (Linux /etc/shadow moderne)',      args: 'john --format=sha512crypt --wordlist=/usr/share/wordlists/rockyou.txt {hashfile}' },
+    nt:     { name: 'NTLM',      icon: 'key-square',    desc: 'Hashes NT/NTLM (Windows)',                            args: 'john --format=NT --wordlist=/usr/share/wordlists/rockyou.txt {hashfile}' },
+    rules:  { name: 'Rules+',    icon: 'flame',         desc: 'Wordlist + règles de mutation (leet, suffixes…)',     args: 'john --wordlist=/usr/share/wordlists/rockyou.txt --rules {hashfile}' },
   },
   zap_spider: {
     quick:    { name: 'Quick',    icon: 'zap',    desc: 'Crawl rapide profondeur 3',                          args: 'spider {target} --max-depth 3 --safe' },
@@ -266,6 +353,30 @@ function loadPreset(tool, key, taId, btn) {
   if (!item) return;
   document.getElementById(taId).value = item.args;
   document.getElementById(taId + '-desc').textContent = item.desc;
+  document.querySelectorAll(`[data-tool="${tool}"]`).forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// Variante "profil" : uniquement des chips, pas de commande modifiable.
+// La valeur choisie est stockée dans un <input hidden id="opt-{optId}">
+// et transmise telle quelle au backend qui en déduit la vraie commande.
+function profileBlock(tool, optId, defaultKey) {
+  const items = presets[tool];
+  const def   = defaultKey || Object.keys(items)[0];
+  const chips = Object.entries(items).map(([k, v]) =>
+    `<button type="button" class="chip ${k === def ? 'active' : ''}" data-tool="${tool}" data-key="${k}" onclick="loadProfile('${tool}','${k}','${optId}',this)"><i data-lucide="${v.icon}"></i>${v.name}</button>`
+  ).join('');
+  return `
+    <div class="preset-chips">${chips}</div>
+    <div class="preset-desc" id="${optId}-desc">${items[def].desc}</div>
+    <input type="hidden" id="opt-${optId}" value="${def}" />`;
+}
+
+function loadProfile(tool, key, optId, btn) {
+  const item = presets[tool][key];
+  if (!item) return;
+  document.getElementById('opt-' + optId).value = key;
+  document.getElementById(optId + '-desc').textContent = item.desc;
   document.querySelectorAll(`[data-tool="${tool}"]`).forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 }
@@ -305,7 +416,7 @@ const moduleConfig = {
       </div>
       <div id="nikto-cmd" class="cmd-block">
         <div class="cmd-label"><i data-lucide="bug"></i> Nikto — Scanner de vulnérabilités web</div>
-        ${presetBlock('nikto', 'opt-nikto_args', 'Variables : <code>{target}</code> <code>{port}</code>', 'standard')}
+        ${profileBlock('nikto', 'nikto_profile', 'standard')}
       </div>
 
       <div class="form-group toggle-row">
@@ -314,7 +425,7 @@ const moduleConfig = {
       </div>
       <div id="sslyze-cmd" class="cmd-block" style="display:none">
         <div class="cmd-label"><i data-lucide="lock"></i> SSLyze — Audit TLS/SSL</div>
-        ${presetBlock('sslyze', 'opt-sslyze_args', 'Variables : <code>{target}</code>', 'standard')}
+        ${profileBlock('sslyze', 'sslyze_profile', 'standard')}
       </div>`
   },
   exploit: {
@@ -327,22 +438,68 @@ const moduleConfig = {
           <option value="sqlmap">SQLmap — Injection SQL</option>
           <option value="hydra">Hydra — Brute-force credentials</option>
           <option value="msf">Metasploit — Framework d'exploitation</option>
+          <option value="john">John the Ripper — Cassage de hashes</option>
         </select>
       </div>
 
       <div id="tool-sqlmap" class="cmd-block">
         <div class="cmd-label"><i data-lucide="syringe"></i> SQLmap — Injection SQL automatisée</div>
-        ${presetBlock('sqlmap', 'opt-sqlmap_args', 'Variables : <code>{target}</code> (URL avec paramètre, ex: http://site.com/?id=1)', 'standard')}
+        ${profileBlock('sqlmap', 'sqlmap_profile', 'standard')}
       </div>
 
       <div id="tool-hydra" class="cmd-block" style="display:none">
         <div class="cmd-label"><i data-lucide="key-round"></i> Hydra — Brute-force credentials multi-protocoles</div>
-        ${presetBlock('hydra', 'opt-hydra_args', 'Variables : <code>{target}</code> (IP ou hostname)', 'ssh')}
+
+        <div class="form-group">
+          <label>Service</label>
+          <select id="opt-service">
+            <option value="ssh">SSH (port 22)</option>
+            <option value="ftp">FTP (port 21)</option>
+            <option value="rdp">RDP (port 3389)</option>
+            <option value="smb">SMB (port 445)</option>
+            <option value="mysql">MySQL (port 3306)</option>
+            <option value="vnc">VNC (port 5900)</option>
+            <option value="telnet">Telnet (port 23)</option>
+            <option value="http-post-form">HTTP form POST</option>
+            <option value="http-get">HTTP Basic Auth</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Port <span class="label-hint">(optionnel, par défaut le port du service)</span></label>
+          <input type="text" id="opt-port" placeholder="ex: 2222" />
+        </div>
+
+        ${wlPickerHtml('hydra_users', 'Utilisateurs', 'users', false)}
+        ${wlPickerHtml('hydra_pass',  'Mots de passe', 'key-round', true)}
+
+        <div class="form-group">
+          <label>Threads <span class="label-hint">(Hydra -t, défaut 4)</span></label>
+          <input type="number" id="opt-threads" min="1" max="64" value="4" />
+        </div>
       </div>
 
       <div id="tool-msf" class="cmd-block" style="display:none">
         <div class="cmd-label"><i data-lucide="bomb"></i> Metasploit Framework</div>
-        ${presetBlock('msf', 'opt-msf_args', 'Variables : <code>{target}</code> (RHOSTS)', 'handler')}
+        ${profileBlock('msf', 'msf_profile', 'handler')}
+      </div>
+
+      <div id="tool-john" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="key"></i> John the Ripper — Cassage hors ligne de hashes</div>
+        <div class="preset-desc">
+          <b>Cible</b> = hash brut (ex: <code>$1$abc$xyz…</code>) ou chemin de fichier de hashes dans <code>/tmp</code>.
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <label>Format de hash <span class="label-hint">(vide = auto-détection)</span></label>
+          <input type="text" id="opt-format" placeholder="ex: raw-md5, sha512crypt, NT, bcrypt…" />
+        </div>
+
+        ${wlPickerHtml('john_wordlist', 'Wordlist', 'book-open', true)}
+
+        <div class="form-group toggle-row">
+          <label>Activer les règles de mutation (--rules)</label>
+          <label class="toggle"><input type="checkbox" id="opt-rules"><span class="toggle-slider"></span></label>
+        </div>
       </div>`
   },
   web_scan: {
@@ -359,12 +516,12 @@ const moduleConfig = {
 
       <div id="zap-spider" class="cmd-block">
         <div class="cmd-label"><i data-lucide="bug"></i> ZAP Spider — Découverte d'URLs et endpoints</div>
-        ${presetBlock('zap_spider', 'opt-zap_spider_args', 'Variables : <code>{target}</code> (URL de base)', 'standard')}
+        ${profileBlock('zap_spider', 'zap_spider_profile', 'standard')}
       </div>
 
       <div id="zap-active" class="cmd-block" style="display:none">
         <div class="cmd-label"><i data-lucide="zap"></i> ZAP Active Scan — Tests d'attaque actifs</div>
-        ${presetBlock('zap_active', 'opt-zap_active_args', 'Variables : <code>{target}</code> (URL cible)', 'owasp')}
+        ${profileBlock('zap_active', 'zap_active_profile', 'owasp')}
       </div>
 
       <div class="form-group">
@@ -375,16 +532,177 @@ const moduleConfig = {
 };
 
 function switchExploitTool(tool) {
-  ['sqlmap', 'hydra', 'msf'].forEach(t => {
+  ['sqlmap', 'hydra', 'msf', 'john'].forEach(t => {
     const el = document.getElementById('tool-' + t);
     if (el) el.style.display = (t === tool) ? 'block' : 'none';
   });
+  const targetInput = document.getElementById('target');
+  if (targetInput) {
+    if (tool === 'john') {
+      targetInput.placeholder = 'hash brut ($1$…, $6$…, NTLM, md5…) ou chemin /tmp/hashes.txt';
+    } else {
+      targetInput.placeholder = 'ex: 192.168.1.1 ou example.com';
+    }
+    validateTarget();
+  }
 }
 
 function switchZapMode(mode) {
   document.getElementById('zap-spider').style.display = (mode === 'spider') ? 'block' : 'none';
   document.getElementById('zap-active').style.display = (mode === 'active') ? 'block' : 'none';
 }
+
+// ── Wordlist picker : upload / manuel / rockyou ─────────────
+// Chaque "slot" représente un champ (users Hydra, pass Hydra, wordlist John).
+const wlState = {
+  hydra_users:   { source: 'inline',  file: null, filename: null, inline: '', lines: 0 },
+  hydra_pass:    { source: 'rockyou', file: null, filename: null, inline: '', lines: 0 },
+  john_wordlist: { source: 'rockyou', file: null, filename: null, inline: '', lines: 0 },
+};
+let wlCurrentSlot = null;
+
+function wlPickerHtml(slot, label, icon, withRockyou) {
+  const rockyouBtn = withRockyou
+    ? `<button type="button" class="chip" data-slot="${slot}" data-source="rockyou" onclick="selectSource('${slot}','rockyou')">
+         <i data-lucide="key-square"></i> rockyou.txt (Kali)
+       </button>`
+    : '';
+  return `
+    <div class="wl-picker" data-wl-slot="${slot}">
+      <div class="wl-picker-label"><i data-lucide="${icon}"></i> ${label}</div>
+      <div class="wl-tabs">
+        <button type="button" class="chip" data-slot="${slot}" data-source="file" onclick="document.getElementById('wl-${slot}-file').click()">
+          <i data-lucide="upload"></i> Importer un fichier
+        </button>
+        <button type="button" class="chip" data-slot="${slot}" data-source="inline" onclick="openWordlistModal('${slot}','${label}')">
+          <i data-lucide="list"></i> Liste manuelle
+        </button>
+        ${rockyouBtn}
+        <input type="file" id="wl-${slot}-file" accept=".txt,.lst,.list,text/plain" style="display:none" onchange="uploadWordlist(this,'${slot}')" />
+      </div>
+      <div class="wl-summary wl-empty" id="wl-${slot}-summary">Aucune source sélectionnée</div>
+    </div>`;
+}
+
+function selectSource(slot, source) {
+  if (!wlState[slot]) return;
+  wlState[slot].source = source;
+  if (source === 'rockyou') {
+    wlState[slot].file = null;
+    wlState[slot].filename = null;
+    wlState[slot].inline = '';
+    wlState[slot].lines = 0;
+  }
+  renderSlot(slot);
+}
+
+function renderSlot(slot) {
+  const s = wlState[slot];
+  if (!s) return;
+  // Chips actives
+  document.querySelectorAll(`[data-slot="${slot}"][data-source]`).forEach(b => {
+    b.classList.toggle('active', b.dataset.source === s.source);
+  });
+  const summary = document.getElementById(`wl-${slot}-summary`);
+  if (!summary) return;
+  summary.classList.remove('wl-empty');
+  if (s.source === 'rockyou') {
+    summary.innerHTML = '<i data-lucide="key-square"></i> <b>rockyou.txt</b> — Kali par défaut (~14M entrées)';
+  } else if (s.source === 'file' && s.filename) {
+    summary.innerHTML = `<i data-lucide="file-text"></i> <b>${s.filename}</b> — ${s.lines.toLocaleString('fr-FR')} ligne(s)`;
+  } else if (s.source === 'inline' && s.lines > 0) {
+    summary.innerHTML = `<i data-lucide="list"></i> Liste manuelle — ${s.lines} entrée(s)`;
+  } else {
+    summary.classList.add('wl-empty');
+    summary.innerHTML = '<i data-lucide="alert-circle"></i> Aucune source sélectionnée';
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderAllSlots() {
+  Object.keys(wlState).forEach(renderSlot);
+}
+
+function openWordlistModal(slot, label) {
+  wlCurrentSlot = slot;
+  document.getElementById('wl-modal-title').textContent = `Liste manuelle — ${label}`;
+  const ta = document.getElementById('wl-modal-textarea');
+  ta.value = wlState[slot] ? wlState[slot].inline || '' : '';
+  updateWlModalCount();
+  document.getElementById('wl-modal').classList.add('open');
+  setTimeout(() => ta.focus(), 50);
+}
+
+function closeWordlistModal() {
+  document.getElementById('wl-modal').classList.remove('open');
+  wlCurrentSlot = null;
+}
+
+function saveWordlistModal() {
+  if (!wlCurrentSlot) return closeWordlistModal();
+  const text  = document.getElementById('wl-modal-textarea').value;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  wlState[wlCurrentSlot].source = 'inline';
+  wlState[wlCurrentSlot].inline = lines.join('\n');
+  wlState[wlCurrentSlot].lines  = lines.length;
+  wlState[wlCurrentSlot].file = null;
+  wlState[wlCurrentSlot].filename = null;
+  renderSlot(wlCurrentSlot);
+  closeWordlistModal();
+}
+
+function updateWlModalCount() {
+  const v = document.getElementById('wl-modal-textarea').value;
+  const n = v.split('\n').map(l => l.trim()).filter(Boolean).length;
+  document.getElementById('wl-modal-count').textContent = `${n} entrée(s)`;
+}
+
+async function uploadWordlist(input, slot) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const summary = document.getElementById(`wl-${slot}-summary`);
+  if (summary) {
+    summary.classList.remove('wl-empty');
+    summary.innerHTML = '<i data-lucide="loader-2"></i> Envoi en cours…';
+    if (window.lucide) lucide.createIcons();
+  }
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/modules/wordlist', {
+      method: 'POST', body: fd, credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    wlState[slot].source = 'file';
+    wlState[slot].file = data.path;
+    wlState[slot].filename = data.filename;
+    wlState[slot].lines = data.lines;
+    wlState[slot].inline = '';
+    renderSlot(slot);
+  } catch (e) {
+    if (summary) {
+      summary.classList.add('wl-empty');
+      summary.innerHTML = `<i data-lucide="alert-circle"></i> Upload échoué : ${e.message}`;
+      if (window.lucide) lucide.createIcons();
+    }
+  } finally {
+    input.value = '';
+  }
+}
+
+// Wrapper global pour les inputs du textarea — écouté via delegation
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'wl-modal-textarea') updateWlModalCount();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('wl-modal').classList.contains('open')) {
+    closeWordlistModal();
+  }
+});
 
 let currentModule = 'recon';
 let currentJobId  = null;
@@ -409,16 +727,43 @@ function selectModule(name, el) {
   document.getElementById('module-options').innerHTML =
     typeof cfg.options === 'function' ? cfg.options() : cfg.options;
   if (window.lucide) lucide.createIcons();
+  // Restaure l'état des pickers de wordlist présents dans le DOM reconstruit
+  renderAllSlots();
 }
 
 function collectOptions() {
   const opts = {};
   document.querySelectorAll('#module-options input, #module-options select').forEach(el => {
+    // Les inputs techniques du picker (type=file) sont ignorés
+    if (el.type === 'file') return;
     const key = el.id.replace('opt-', '');
+    if (!el.id || !el.id.startsWith('opt-')) return;
     if (el.type === 'checkbox') opts[key] = el.checked;
     else if (el.value !== '') opts[key] = el.value;
   });
+
+  // Sérialisation des pickers de wordlists en fonction du mode exploit actif
+  const mode = opts.mode;
+  if (currentModule === 'exploit' && mode === 'hydra') {
+    applyWlSlot(opts, 'hydra_users', 'user_file',  'users_inline',     null);
+    applyWlSlot(opts, 'hydra_pass',  'pass_file',  'passwords_inline', 'use_rockyou');
+  }
+  if (currentModule === 'exploit' && mode === 'john') {
+    applyWlSlot(opts, 'john_wordlist', 'wordlist_file', 'wordlist_inline', 'use_rockyou');
+  }
   return opts;
+}
+
+function applyWlSlot(opts, slot, fileKey, inlineKey, rockyouKey) {
+  const s = wlState[slot];
+  if (!s) return;
+  if (s.source === 'file' && s.file) {
+    opts[fileKey] = s.file;
+  } else if (s.source === 'inline' && s.inline) {
+    opts[inlineKey] = s.inline;
+  } else if (s.source === 'rockyou' && rockyouKey) {
+    opts[rockyouKey] = true;
+  }
 }
 
 // ── Validation cible ────────────────────────────────────────
@@ -465,6 +810,15 @@ function validateTarget() {
   if (!val) {
     errDiv.style.display = 'none';
     input.classList.remove('input-invalid', 'input-valid');
+    return true;
+  }
+
+  // John the Ripper : la cible est un hash, pas une IP/URL — on ne valide pas.
+  const modeEl = document.getElementById('opt-mode');
+  if (currentModule === 'exploit' && modeEl && modeEl.value === 'john') {
+    errDiv.style.display = 'none';
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
     return true;
   }
 
@@ -529,7 +883,7 @@ function showProgress(jobId, module, target) {
   iconEl.style.color          = cfg.iconColor;
   document.getElementById('prog-title').textContent  = cfg.title + ' en cours';
   document.getElementById('prog-target').innerHTML   = `<i data-lucide="target" class="icon-sm"></i> ${target}`;
-  document.getElementById('term-title').textContent  = `bash — pentestbox@kali — ${module}`;
+  document.getElementById('term-title').textContent  = `bash — toolboxv8@kali — ${module}`;
   renderTerminal([], 'pending', module, target);
   setProgressUI(0, 'En attente du worker Celery...', 'pending', []);
   document.getElementById('progress-panel').style.display = 'block';
@@ -545,7 +899,7 @@ function esc(s) {
 function renderTerminal(logs, status, module, target) {
   const body = document.getElementById('term-body');
   let html = `<div class="term-line">
-    <span class="term-prompt">pentestbox@kali:~$</span>
+    <span class="term-prompt">toolboxv8@kali:~$</span>
     <span class="term-cmd"> run_${esc(module)} --target ${esc(target)}</span>
   </div>`;
 
@@ -571,7 +925,7 @@ function renderTerminal(logs, status, module, target) {
       <span class="term-success">✔ Mission accomplie — résultats disponibles.</span>
     </div>
     <div class="term-line">
-      <span class="term-prompt">pentestbox@kali:~$</span>
+      <span class="term-prompt">toolboxv8@kali:~$</span>
       <span class="term-cursor"> █</span>
     </div>`;
   } else if (status === 'error') {

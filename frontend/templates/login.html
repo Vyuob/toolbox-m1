@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PentestBox – Connexion</title>
+  <title>ToolboxV8 – Connexion</title>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -153,25 +153,26 @@
     <div class="logo">
       <div class="logo-icon"><i data-lucide="shield-check"></i></div>
       <div>
-        <div class="logo-text">PentestBox</div>
+        <div class="logo-text">ToolboxV8</div>
         <div class="logo-sub">Cybersécurité Offensive</div>
       </div>
     </div>
 
-    <div class="tag">Accès restreint</div>
     <h1>Connexion</h1>
     <p class="subtitle">Entrez vos identifiants pour accéder à la plateforme</p>
 
-    <div class="alert alert--error" id="alert-error">
-      <i data-lucide="alert-triangle"></i> <span id="alert-msg">Identifiants incorrects</span>
+    {% if error %}
+    <div class="alert alert--error" style="display:flex">
+      <i data-lucide="alert-triangle"></i> <span>{{ error }}</span>
     </div>
+    {% endif %}
 
-    <form id="login-form" autocomplete="off">
+    <form id="login-form" method="POST" action="/login" autocomplete="off">
       <div class="form-group">
         <label for="username">Nom d'utilisateur</label>
         <div class="input-wrap">
           <span class="input-icon"><i data-lucide="user"></i></span>
-          <input type="text" id="username" name="username" placeholder="admin" required autofocus />
+          <input type="text" id="username" name="username" placeholder="admin" value="{{ username or '' }}" required autofocus />
         </div>
       </div>
       <div class="form-group">
@@ -189,60 +190,18 @@
       </button>
     </form>
 
-    <div class="footer-links">
-      <a href="/api/docs">Documentation API →</a>
-    </div>
   </div>
 
   <script>
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const btn      = document.getElementById('btn-submit');
-      const spinner  = document.getElementById('spinner');
-      const btnText  = document.getElementById('btn-text');
-      const alertEl  = document.getElementById('alert-error');
-      const alertMsg = document.getElementById('alert-msg');
-
+    document.getElementById('login-form').addEventListener('submit', () => {
+      const btn     = document.getElementById('btn-submit');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btn-text');
       btn.disabled = true;
       spinner.style.display = 'block';
       btnText.textContent = 'Connexion…';
-      alertEl.style.display = 'none';
-
-      try {
-        const body = new URLSearchParams({ username, password });
-        const res = await fetch('/api/auth/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body,
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.detail || 'Identifiants incorrects');
-        }
-
-        const { access_token } = await res.json();
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('username', username);
-
-        btnText.textContent = 'Redirection…';
-        window.location.href = '/dashboard';
-      } catch (err) {
-        alertMsg.textContent = err.message;
-        alertEl.style.display = 'flex';
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        btnText.textContent = 'Se connecter';
-      }
     });
 
-    // Déjà connecté → rediriger
-    if (localStorage.getItem('access_token')) {
-      window.location.href = '/dashboard';
-    }
     if (window.lucide) lucide.createIcons();
   </script>
 </body>

@@ -1,4 +1,4 @@
-# Guide d'Installation – PentestBox
+# Guide d'Installation – ToolboxV8
 
 ## Prérequis
 
@@ -57,6 +57,20 @@ docker compose -f docker/docker-compose.yml ps
 
 Tous les services doivent être en état `running` ou `healthy`.
 
+La stack comprend désormais **3 services applicatifs** :
+
+- **api** (FastAPI, port **8000**) : expose l'API REST (`/api/*`)
+- **web** (FastAPI, port **3000**) : sert les pages HTML et agit comme proxy `/api/*` vers l'api, pose le cookie HttpOnly d'authentification
+- **worker** (Celery, image **Kali Rolling**) : exécute les modules offensifs
+
+Le worker Celery est basé sur `kalilinux/kali-rolling` (Dockerfile multi-stage) avec tous les outils offensifs préinstallés : nmap, nikto, sqlmap, hydra, john-jumbo, sslyze, msfconsole, ainsi que la wordlist `rockyou.txt`.
+
+Volumes Docker persistés :
+
+- `postgres_data` : données PostgreSQL
+- `minio_data` : stockage objet des rapports
+- `wordlists_data:/tmp/wordlists` : volume **partagé entre `api` et `worker`** pour les wordlists uploadées via `POST /api/modules/wordlist`
+
 ### 5. Créer le premier administrateur
 
 ```bash
@@ -110,7 +124,8 @@ celery -A app.tasks.celery_app worker --loglevel=info
 
 | Service | URL | Identifiants par défaut |
 |---------|-----|------------------------|
-| API / Dashboard | http://localhost:8000/api/dashboard/ | Créer via `/api/auth/register` |
+| Interface Web / Login | http://localhost:3000/login | Créer via `/api/auth/register` |
+| API REST | http://localhost:8000/api/ | – |
 | Swagger UI | http://localhost:8000/api/docs | – |
 | Kibana (SIEM) | http://localhost:5601 | elastic / changeme |
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |

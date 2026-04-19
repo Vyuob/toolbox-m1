@@ -180,6 +180,21 @@ def run_exploit(self, target: str, options: dict) -> dict:
         p(72, "Metasploit : analyse de la réponse de la cible...")
         result_data = module._metasploit(target, options)
         p(85, "Metasploit : récupération du résultat de l'exploitation...")
+
+    elif mode == "john":
+        fmt      = options.get("format") or "auto"
+        wordlist = options.get("wordlist") or "/usr/share/wordlists/rockyou.txt"
+        p(12, f"John the Ripper : préparation du cassage (format={fmt})...")
+        p(18, f"John : chargement de la wordlist {wordlist}...")
+        p(26, "John : détection automatique du format de hash...")
+        p(34, "John : normalisation des hashes (suppression sel/UID)...")
+        p(42, "John : lancement du mode wordlist (mots + règles de mutation)...")
+        p(52, "John : essai des mots de passe du dictionnaire...")
+        p(62, "John : application des règles de transformation (leetspeak, suffixes)...")
+        p(72, "John : vérification des hashes cassés via --show...")
+        result_data = module._john(target, options)
+        p(82, "John : compilation des credentials cassés...")
+
     else:
         result_data = {"error": f"Mode inconnu : {mode}"}
         p(85, f"Mode {mode} non reconnu.")

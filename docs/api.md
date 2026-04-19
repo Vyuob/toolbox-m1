@@ -1,10 +1,15 @@
-# Référence API REST – PentestBox
+# Référence API REST – ToolboxV8
 
 > Documentation Swagger interactive : `http://localhost:8000/api/docs`
 
 ## Authentification
 
-Toutes les routes (sauf `/health` et `/api/auth/token`) nécessitent un token JWT.
+Toutes les routes (sauf `/health` et `/api/auth/token`) nécessitent un JWT.
+
+L'API accepte **deux méthodes** d'authentification équivalentes :
+
+- En-tête HTTP `Authorization: Bearer <access_token>` (clients externes, scripts, CI)
+- Cookie `access_token=<jwt>` (utilisé automatiquement par le service **web** sur le port 3000, posé en `HttpOnly` lors du login)
 
 ```
 Authorization: Bearer <access_token>
@@ -112,6 +117,38 @@ Lister ses jobs.
 
 ### GET `/api/modules/jobs/{job_id}`
 Détail d'un job avec état Celery en temps réel.
+
+---
+
+### POST `/api/modules/wordlist`
+Uploader une wordlist custom (utilisable ensuite par les modules **Hydra** et **John**). Rôle requis : `analyst` ou `admin`.
+
+Le fichier est stocké dans le volume Docker partagé `wordlists_data` (monté sur `/tmp/wordlists` côté `api` et côté `worker`).
+
+**Requête** : `multipart/form-data`
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `file` | file | Fichier texte (un mot par ligne) |
+
+**Exemple curl** :
+```bash
+curl -X POST http://localhost:8000/api/modules/wordlist \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@./passwords.txt"
+```
+
+**Réponse 201** :
+```json
+{
+  "path": "/tmp/wordlists/passwords.txt",
+  "filename": "passwords.txt",
+  "size": 10240,
+  "lines": 1337
+}
+```
+
+Le champ `path` renvoyé peut être passé aux modules Hydra / John comme wordlist source.
 
 ---
 

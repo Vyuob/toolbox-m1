@@ -1,157 +1,258 @@
-# Modules PentestBox – Référence
+# Modules ToolboxV8 – Référence
 
-## Modules Offensifs
+Tous les outils offensifs sont **préinstallés dans l'image Kali Rolling** du worker Celery (voir [architecture.md §8](architecture.md)). Le retour de chaque outil est normalisé :
+
+```python
+{
+  "command":   "nmap -sV --top-ports 100 192.168.1.1",   # commande réellement exécutée
+  "profile":   "standard",                                 # si le module utilise des profils
+  "output":    "<stdout CLI brut, tel qu'en terminal>",
+  "stderr":    "…",
+  "credentials": [...]   # optionnel, si l'outil produit une liste (hydra / john)
+}
+```
+
+Le rapport PDF reprend ces champs un par un.
+
+---
+
+## Modules offensifs
 
 ### 1. Reconnaissance (`recon`)
 
-**Fichier** : `backend/app/modules/offensive/recon.py`
+**Fichier** : [backend/app/modules/offensive/recon.py](../backend/app/modules/offensive/recon.py)
 
-**Outils intégrés** :
-- `nmap` – Scan de ports, détection OS et services (`-sV -O`)
-- `whois` – Informations sur le domaine/IP
-- Résolution DNS native Python
-
-**Options** :
+**Outils** : `nmap`, `whois`, résolution DNS native.
 
 | Option | Type | Défaut | Description |
 |--------|------|--------|-------------|
-| `nmap_args` | string | `-sV -O --top-ports 1000` | Arguments Nmap |
+| `nmap_args` | string | `-sV -O --top-ports 1000` | Arguments Nmap (utilisés tels quels) |
 | `whois` | bool | `false` | Activer le lookup whois |
 
-**Résultat** :
+**Retour (exemple)** :
+
 ```json
 {
   "target": "192.168.1.1",
-  "dns": {"resolved_ip": "192.168.1.1", "all_ips": ["192.168.1.1"]},
-  "nmap": {"raw_xml": "..."},
-  "whois": "..."
+  "dns":    {"command": "resolve 192.168.1.1", "output": "; Résolution DNS…\n;; ANSWER SECTION:\n192.168.1.1. IN A 192.168.1.1", "resolved_ip": "192.168.1.1"},
+  "nmap":   {"command": "nmap -sV --top-ports 1000 192.168.1.1", "output": "Starting Nmap 7.99…\nPORT  STATE…", "stderr": ""},
+  "whois":  "…"
 }
 ```
 
 ---
 
-### 2. Scan de Vulnérabilités (`scan`)
+### 2. Scan de vulnérabilités (`scan`)
 
-**Fichier** : `backend/app/modules/offensive/scan.py`
+**Fichier** : [backend/app/modules/offensive/scan.py](../backend/app/modules/offensive/scan.py)
 
-**Outils intégrés** :
-- `nmap --script=vuln` – Scripts NSE de détection de vulnérabilités
-- `nikto` – Audit serveur web (headers, fichiers exposés, CVE)
-- `sslyze` – Audit TLS/SSL (ciphers, certificats, HSTS)
+**Outils** : `nmap --script=vuln`, `nikto`, `sslyze` (binaire Kali).
 
-**Options** :
+**Profils Nikto** (chips UI) :
+
+| Profil | Tuning |
+|--------|--------|
+| Quick | `-Tuning x` (tests de base) |
+| Standard | `-Tuning x6` (CGI + fichiers + config + injection) |
+| Full | `-Tuning 0123456789abc` (tous les modules) |
+| Evasion | `-Tuning x -evasion 1` |
+
+**Profils SSLyze** (chips UI) :
+
+| Profil | Arguments |
+|--------|-----------|
+| Certificat | `--certinfo` |
+| Standard | `--regular` |
+| Full | `--regular --certinfo --reneg --resum --heartbleed --robot` |
+
+**Options UI** :
 
 | Option | Type | Défaut | Description |
 |--------|------|--------|-------------|
 | `nikto` | bool | `true` | Activer Nikto |
 | `sslyze` | bool | `false` | Activer SSLyze |
-| `port` | int/string | – | Port spécifique |
+| `port` | int | `80` | Port web testé |
+| `nikto_profile` | enum | `standard` | Profil Nikto |
+| `sslyze_profile` | enum | `standard` | Profil SSLyze |
 
 ---
 
 ### 3. Exploitation (`exploit`)
 
-**Fichier** : `backend/app/modules/offensive/exploit.py`
+**Fichier** : [backend/app/modules/offensive/exploit.py](../backend/app/modules/offensive/exploit.py)
 
-**Outils intégrés** :
-- `sqlmap` – Injection SQL automatisée
-- `hydra` – Brute-force (SSH, FTP, HTTP, etc.)
-- `Metasploit` via `pymetasploit3` (MSFRPC)
+**Outils** : `sqlmap`, `hydra`, `john the ripper` (version jumbo, 304 formats), `Metasploit` (via MSFRPC).
 
-**Options selon le mode** :
+Le dropdown **Outil d'exploitation** sélectionne un sous-module (`mode`) :
 
-| Mode | Options |
-|------|---------|
-| `sqlmap` | `level (1-5)`, `risk (1-3)` |
-| `hydra` | `service`, `userlist`, `passlist` |
-| `msf` | `exploit`, `msf_host`, `msf_port`, `msf_password`, `msf_options` |
+#### 3.1 SQLmap (`mode=sqlmap`)
 
-> **Avertissement** : Ce module ne doit être utilisé que sur des cibles autorisées.
+| Profil | Arguments (batch + --output-dir=/tmp/sqlmap imposés) |
+|--------|------|
+| Quick | `--level=1 --risk=1` |
+| Standard | `--level=3 --risk=2 --random-agent --threads=4` |
+| Aggressive | `--level=5 --risk=3 --random-agent --threads=10 --tamper=space2comment` |
+| Dump DB | `--level=1 --risk=1 --dbs --tables --dump` |
+
+Option : `sqlmap_profile` (enum, défaut `standard`).
+
+#### 3.2 Hydra (`mode=hydra`)
+
+| Option | Description |
+|--------|-------------|
+| `service` | `ssh`, `ftp`, `rdp`, `smb`, `mysql`, `vnc`, `telnet`, `http-post-form`, `http-get` |
+| `port` | Port TCP optionnel (sinon port par défaut du service) |
+| `threads` | `-t N`, défaut 4 |
+| `user_file` / `users_inline` | Chemin d'une wordlist uploadée **ou** chaîne avec un login par ligne |
+| `pass_file` / `passwords_inline` / `use_rockyou` | Idem pour les mots de passe, avec option rockyou.txt |
+
+L'UI propose 2 « sources » pour users et 3 pour passwords (fichier uploadé / modale manuelle / rockyou.txt).
+
+#### 3.3 John the Ripper (`mode=john`)
+
+La **cible** est le hash brut (ou un chemin de fichier `/tmp/…`).
+
+| Option | Description |
+|--------|-------------|
+| `format` | Format de hash (`md5crypt`, `sha512crypt`, `NT`, `bcrypt`, `argon2`… ou vide pour auto-détection) |
+| `wordlist_file` / `wordlist_inline` / `use_rockyou` | Wordlist personnalisée (upload / manuelle / défaut) |
+| `rules` | bool, active `--rules` (mutations leet, suffixes…) |
+| `timeout` | secondes, défaut 180 |
+
+#### 3.4 Metasploit (`mode=msf`)
+
+| Profil | Module MSF | Options auto |
+|--------|-----------|--------------|
+| Handler | `exploit/multi/handler` | `PAYLOAD=generic/shell_reverse_tcp`, `LHOST=0.0.0.0`, `LPORT=4444` |
+| EternalBlue | `exploit/windows/smb/ms17_010_eternalblue` | `PAYLOAD=windows/x64/meterpreter/reverse_tcp` |
+| PortScan | `auxiliary/scanner/portscan/tcp` | `PORTS=1-65535` |
+| SMB Vuln | `auxiliary/scanner/smb/smb_ms17_010` | — |
+
+Chaque profil ajoute automatiquement `RHOSTS=<cible>`. Requiert un démon `msfrpcd` joignable (`msf_host`, `msf_port`, `msf_password`).
+
+> **Avertissement** : uniquement sur des cibles pour lesquelles vous avez une autorisation écrite.
 
 ---
 
-### 4. Scan Web/API (`web_scan`)
+### 4. Scan Web / API (`web_scan`)
 
-**Fichier** : `backend/app/modules/offensive/web_scan.py`
+**Fichier** : [backend/app/modules/offensive/web_scan.py](../backend/app/modules/offensive/web_scan.py)
 
-**Outils intégrés** :
-- `OWASP ZAP` via API REST (spider + active scan)
-- `dependency-check` – Détection de composants vulnérables
+**Outils** : OWASP ZAP (via API HTTP), Dependency-Check (optionnel).
 
-**Options** :
+**Profils ZAP Spider** :
+
+| Profil | Paramètres ZAP |
+|--------|----------------|
+| Quick | `maxChildren=50, recurse=false` |
+| Standard | `maxChildren=200, recurse=true` |
+| Deep | `maxChildren=1000, recurse=true, subtreeOnly=false` |
+
+**Profils ZAP Active** :
+
+| Profil | Paramètres ZAP |
+|--------|----------------|
+| Quick | `recurse=false, scanPolicyName=XSS-SQLi` |
+| OWASP | `recurse=true, scanPolicyName=OWASP-Top10` |
+| Full  | `recurse=true, scanPolicyName=Default Policy` |
+
+**Options UI** :
 
 | Option | Type | Défaut | Description |
 |--------|------|--------|-------------|
-| `zap` | bool | `true` | Activer ZAP |
-| `scan_type` | string | `spider` | `spider` ou `active` |
+| `zap` | bool | `true` | Lancer ZAP |
+| `scan_type` | enum | `spider` | `spider` ou `active` |
 | `zap_url` | string | `http://localhost:8080` | URL de l'instance ZAP |
+| `zap_spider_profile` | enum | `standard` | Profil Spider |
+| `zap_active_profile` | enum | `owasp` | Profil Active |
 | `dep_check` | bool | `false` | Activer Dependency-Check |
 
 ---
 
-### 5. Post-Exploitation (`post_exploit`)
+### 5. Post-exploitation (`post_exploit`)
 
-**Fichier** : `backend/app/modules/offensive/post_exploit.py`
+**Fichier** : [backend/app/modules/offensive/post_exploit.py](../backend/app/modules/offensive/post_exploit.py)
 
 Actions :
+
 - `enumerate` : liste des commandes d'énumération locale (users, processes, sudo, SUID)
 - `persistence_check` : vérification des mécanismes de persistance (cron, rc.local, systemd)
 
+> Ce module est documentaire (il retourne les commandes recommandées, il ne les exécute pas sur la cible distante).
+
 ---
 
-## Modules Défensifs
+## Modules défensifs
 
 ### 6. SIEM (`siem`)
 
-**Fichier** : `backend/app/modules/defensive/siem.py`
+**Fichier** : [backend/app/modules/defensive/siem.py](../backend/app/modules/defensive/siem.py)
 
 Interface avec Elasticsearch :
-- `index_event(type, data)` : indexe un événement
-- `search_events(query)` : recherche full-text
-- `get_recent_alerts()` : dernières alertes
+
+- `index_event(type, data)` — indexe un événement
+- `search_events(query)` — recherche full-text
+- `get_recent_alerts()` — dernières alertes
 
 Tous les résultats de scan sont automatiquement indexés dans `pentest-logs-*`.
 
----
-
 ### 7. IDS (`ids`)
 
-**Fichier** : `backend/app/modules/defensive/ids.py`
+**Fichier** : [backend/app/modules/defensive/ids.py](../backend/app/modules/defensive/ids.py)
 
-Parse les alertes Snort depuis `/var/log/snort/alert`.
+Parse les alertes Snort depuis `/var/log/snort/alert`. Règles locales fournies ([siem/snort/local.rules](../siem/snort/local.rules)) :
 
-- `parse_alerts()` : retourne la liste des alertes structurées
-- `get_stats()` : statistiques par classification
-
-Règles Snort incluses :
 - Détection scan Nmap SYN
-- Bruteforce SSH et HTTP Basic Auth
-- SQL Injection
-- XSS
-- Directory Traversal
+- Brute-force SSH / HTTP Basic
+- SQL Injection / XSS / Directory Traversal
+
+### 8. Réponse active (`response`)
+
+**Fichier** : [backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py)
+
+- `block_ip(ip, reason)` — règle iptables `DROP`
+- `unblock_ip(ip)` — suppression de la règle
+- `isolate_host(ip)` — isolation réseau (à connecter à un hyperviseur)
+- `send_alert(message, severity)` — alerte vers le SIEM
+
+### 9. Forensique (`forensic`) — bonus
+
+**Fichier** : [backend/app/modules/defensive/forensic.py](../backend/app/modules/defensive/forensic.py)
+
+- `ClamAV` — antivirus open-source
+- `VirusTotal API v3` — analyse multi-moteurs
+
+Méthodes : `scan_file(path)`, `get_vt_result(analysis_id)`.
 
 ---
 
-### 8. Réponse Active (`response`)
+## Endpoint d'upload de wordlists
 
-**Fichier** : `backend/app/modules/defensive/response.py`
+Pour Hydra et John, l'utilisateur peut fournir ses propres listes via :
 
-Actions :
-- `block_ip(ip, reason)` : règle iptables DROP
-- `unblock_ip(ip)` : suppression de la règle
-- `isolate_host(ip)` : isolation réseau (à connecter à l'hyperviseur)
-- `send_alert(message, severity)` : alerte dans le SIEM
+```http
+POST /api/modules/wordlist   (multipart/form-data : file=...)
 
----
+Réponse 201 :
+{
+  "path":     "/tmp/wordlists/<uuid>_users.txt",
+  "filename": "users.txt",
+  "size":     142,
+  "lines":    18
+}
+```
 
-### 9. Forensique (`forensic`) – Bonus
+Le chemin retourné est directement utilisable comme `user_file` / `pass_file` / `wordlist_file` dans l'option du module. Limite : 200 MB. Le fichier est accessible au worker via le volume Docker partagé `wordlists_data`.
 
-**Fichier** : `backend/app/modules/defensive/forensic.py`
+## Format de résultat unifié
 
-Outils :
-- `ClamAV` – Antivirus open-source
-- `VirusTotal API v3` – Analyse multi-moteurs
+Toutes les sorties d'outils offensifs alimentent le rapport via la fonction `_format_tool_data(tool, data)` du générateur PDF ([generator.py](../backend/app/reporting/generator.py)), qui extrait :
 
-Méthodes :
-- `scan_file(path)` : analyse un fichier avec ClamAV et VirusTotal
-- `get_vt_result(analysis_id)` : récupère les résultats VirusTotal
+- `error` — encart rouge si échec
+- `command` — ligne inline monospace
+- `main_output` (`output` / `raw_xml` / `stdout`) — bloc préformaté noir
+- `stderr` — bloc noir séparé
+- `results_list` (`credentials` / `cracked`) — liste verte
+- `extras_json` — JSON indenté pour les clés non interprétées
+
+Le résultat : chaque outil apparaît dans le PDF avec sa sortie CLI **telle qu'en terminal**.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# start.sh – Lance la stack PentestBox complète via Docker
+# start.sh – Lance la stack ToolboxV8 complète via Docker
 # Usage : ./scripts/start.sh [--dev | --prod | --stop | --logs]
 # ============================================================
 
@@ -12,7 +12,7 @@ ENV_FILE="$PROJECT_ROOT/.env"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
-log()  { echo -e "${CYAN}[PentestBox]${NC} $*"; }
+log()  { echo -e "${CYAN}[ToolboxV8]${NC} $*"; }
 ok()   { echo -e "${GREEN}[OK]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 err()  { echo -e "${RED}[ERROR]${NC} $*" >&2; }
@@ -50,7 +50,7 @@ init_env() {
 # ---- Démarrage ----
 start() {
   local mode="${1:-prod}"
-  log "Démarrage PentestBox en mode : $mode"
+  log "Démarrage ToolboxV8 en mode : $mode"
   cd "$PROJECT_ROOT"
   init_env
 
@@ -61,7 +61,7 @@ start() {
     echo ""
     ok "Stack démarrée !"
     echo ""
-    echo -e "  ${CYAN}Interface web${NC}  : http://localhost:8000/api/dashboard/"
+    echo -e "  ${CYAN}Interface web${NC}  : http://localhost:3000/login"
     echo -e "  ${CYAN}API Swagger${NC}    : http://localhost:8000/api/docs"
     echo -e "  ${CYAN}Kibana (SIEM)${NC}  : http://localhost:5601"
     echo -e "  ${CYAN}MinIO Console${NC}  : http://localhost:9001"
@@ -70,6 +70,14 @@ start() {
     for i in $(seq 1 30); do
       if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
         ok "API prête !"
+        break
+      fi
+      sleep 2
+    done
+    log "Attente que le site web soit prêt..."
+    for i in $(seq 1 30); do
+      if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+        ok "Web prêt !"
         break
       fi
       sleep 2

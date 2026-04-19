@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard – PentestBox</title>
+  <title>Dashboard – ToolboxV8</title>
   <link rel="stylesheet" href="/static/css/app.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
@@ -14,7 +14,7 @@
   <div class="sidebar-brand">
     <div class="brand-icon"><i data-lucide="shield-check"></i></div>
     <div>
-      <div class="brand-name">PentestBox</div>
+      <div class="brand-name">ToolboxV8</div>
       <div class="brand-sub">v1.0.0</div>
     </div>
   </div>
@@ -34,9 +34,6 @@
     <div class="nav-section-label" style="margin-top:16px">Défensif</div>
     <a href="/siem" class="nav-item">
       <span class="nav-icon"><i data-lucide="radar"></i></span> SIEM
-    </a>
-    <a href="#" class="nav-item" onclick="openSIEM()">
-      <span class="nav-icon"><i data-lucide="external-link"></i></span> Kibana
     </a>
   </nav>
 
@@ -173,10 +170,6 @@
   loadReports();
   startClock();
   if (window.lucide) lucide.createIcons();
-
-  function openSIEM() {
-    window.open('http://localhost:5601', '_blank');
-  }
 
   async function loadStats() {
     const d = await apiFetch('/api/dashboard/stats');

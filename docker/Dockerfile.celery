@@ -1,25 +1,54 @@
-FROM python:3.11-slim-bookworm
+# ─── Stage 1 : export des dépendances Python via poetry ───────────────────
+# On utilise une base python-slim stable pour éviter les frictions PEP 668
+# de Kali pendant la résolution poetry.
+FROM python:3.11-slim-bookworm AS builder
+
+ENV POETRY_VERSION=1.8.2 \
+    POETRY_NO_INTERACTION=1
+
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION" "poetry-plugin-export>=1.8.0"
+
+WORKDIR /build
+COPY backend/pyproject.toml backend/poetry.lock* ./
+RUN poetry export -f requirements.txt --without-hashes --only main -o /requirements.txt
+
+
+# ─── Stage 2 : runtime Kali avec les outils offensifs ─────────────────────
+FROM kalilinux/kali-rolling
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.2 \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_CREATE=false
+    DEBIAN_FRONTEND=noninteractive \
+    PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /app
 
+# Outils offensifs (repos Kali) + dépendances runtime Python/WeasyPrint
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev nmap perl git ca-certificates \
-    libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libcairo2 \
-    libgdk-pixbuf-2.0-0 fonts-dejavu-core shared-mime-info \
-    && git clone --depth 1 https://github.com/sullo/nikto.git /opt/nikto \
-    && ln -sf /opt/nikto/program/nikto.pl /usr/local/bin/nikto \
+      # Pentest
+      nmap nikto sqlmap hydra john wordlists \
+      whois dnsutils curl \
+      metasploit-framework \
+      # Build / runtime Python
+      gcc libpq-dev git ca-certificates \
+      python3 python3-pip python3-venv python3-dev \
+      # WeasyPrint (rendu PDF dans report_tasks)
+      libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libcairo2 \
+      libgdk-pixbuf-2.0-0 fonts-dejavu-core shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+# Décompresser rockyou.txt (utilisé par john / hydra)
+RUN if [ -f /usr/share/wordlists/rockyou.txt.gz ]; then \
+      gunzip -k /usr/share/wordlists/rockyou.txt.gz; \
+    fi
 
-COPY backend/pyproject.toml backend/poetry.lock* ./
-RUN poetry install --no-root --only main
+# Venv dédié (contourne PEP 668 de Kali rolling)
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip
+
+# Dépendances Python via le requirements.txt exporté par poetry
+COPY --from=builder /requirements.txt /tmp/requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY backend/ .
 COPY frontend/ ./frontend/

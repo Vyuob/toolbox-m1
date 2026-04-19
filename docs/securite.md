@@ -1,12 +1,18 @@
-# Sécurité & Conformité – PentestBox
+# Sécurité & Conformité – ToolboxV8
 
 ## 1. Authentification et autorisation
 
 ### JWT (JSON Web Tokens)
 - Algorithme : **HS256**
+- Signature via `SECRET_KEY` chargée depuis une **variable d'environnement** (jamais commit en dur)
 - Expiration configurable (`ACCESS_TOKEN_EXPIRE_MINUTES`, défaut 60 min)
-- Stockage côté client uniquement (pas de session serveur)
-- Revocation possible via blacklist Redis (à implémenter en production)
+- Pas de session serveur (stateless) ; révocation possible via blacklist Redis (à implémenter en production)
+
+### Stockage du token côté navigateur
+- Le service **web** (port 3000) pose le JWT dans un **cookie `HttpOnly`** nommé `access_token` lors du `POST /login`
+- Flags du cookie : `HttpOnly=true` (inaccessible en JavaScript → **anti-XSS**), `SameSite=Lax` (anti-CSRF de base), `Secure=true` en HTTPS
+- Ce choix remplace l'ancien stockage `localStorage` : même en cas de faille XSS, le token ne peut pas être exfiltré par du JS tiers
+- Les clients externes (API, CLI, CI) continuent d'utiliser l'en-tête `Authorization: Bearer <jwt>` classique
 
 ### RBAC (Role-Based Access Control)
 | Rôle | Permissions |
@@ -16,7 +22,7 @@
 | `reader` | Lecture seule de ses propres données |
 
 ### Mots de passe
-- Hachage : **bcrypt** (coût adaptatif, résistant aux attaques par dictionnaire)
+- Hachage : **bcrypt** (coût adaptatif, salage automatique, résistant aux attaques par dictionnaire et rainbow tables)
 - Politique minimale recommandée : 12 caractères, majuscule + chiffre + symbole
 
 ---
@@ -37,8 +43,8 @@
 ## 3. Protection de l'API
 
 ### Middlewares actifs
-- `TrustedHostMiddleware` : rejette les requêtes avec Host header invalide
-- `CORSMiddleware` : origines autorisées configurables
+- `TrustedHostMiddleware` : rejette les requêtes avec Host header invalide — activé **sur les deux services** (`api` port 8000 et `web` port 3000)
+- `CORSMiddleware` : origines autorisées configurables — activé **sur les deux services**
 - Rate limiting recommandé (à ajouter via `slowapi` ou reverse proxy)
 
 ### Injection
@@ -78,7 +84,7 @@ Toutes les actions sensibles sont enregistrées dans la table `audit_logs` :
 | Journaux d'accès | AuditLog horodaté avec IP |
 | Consentement | Réservé à des cibles autorisées (contrat de prestation) |
 
-> **Important** : PentestBox ne doit être utilisé que dans le cadre de tests d'intrusion autorisés par écrit par le propriétaire de la cible.
+> **Important** : ToolboxV8 ne doit être utilisé que dans le cadre de tests d'intrusion autorisés par écrit par le propriétaire de la cible.
 
 ---
 

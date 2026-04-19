@@ -1,17 +1,24 @@
+"""Entry point du service API pur.
+
+Ce service expose uniquement les endpoints /api/* et /health.
+Les pages HTML et le formulaire de login sont servis par le service web
+(voir app/web_main.py).
+
+Lancement :
+    uvicorn app.main:app --host 0.0.0.0 --port 8000
+"""
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.routes import auth, modules, reports, dashboard, pages, defensive
+from app.api.routes import auth, dashboard, defensive, modules, reports
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import Base, engine
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Toolbox Pentest",
+    title="ToolboxV8 API",
     description="Plateforme automatisée de tests d'intrusion – Mastère Cybersécurité",
     version="1.0.0",
     docs_url="/api/docs",
@@ -28,9 +35,6 @@ app.add_middleware(
 
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
 
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-
-app.include_router(pages.router)
 app.include_router(auth.router,      prefix="/api/auth",      tags=["Authentification"])
 app.include_router(modules.router,   prefix="/api/modules",   tags=["Modules Pentest"])
 app.include_router(reports.router,   prefix="/api/reports",   tags=["Rapports"])
@@ -40,4 +44,4 @@ app.include_router(defensive.router, prefix="/api/defensive", tags=["SIEM Défen
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "version": "1.0.0"}
+    return {"status": "ok", "service": "api", "version": "1.0.0"}

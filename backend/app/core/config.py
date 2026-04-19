@@ -4,7 +4,7 @@ from typing import List
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "Toolbox Pentest"
+    APP_NAME: str = "ToolboxV8"
     DEBUG: bool = False
     SECRET_KEY: str = "changeme-in-production-use-openssl-rand-hex-32"
     ALGORITHM: str = "HS256"
@@ -12,7 +12,17 @@ class Settings(BaseSettings):
 
     # Hosts
     ALLOWED_HOSTS: List[str] = ["*"]
-    ALLOWED_ORIGINS: List[str] = ["http://localhost", "http://localhost:8000"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost",
+        "http://localhost:8000",
+        "http://localhost:3000",
+    ]
+
+    # URL interne de l'API, utilisée par le service web pour appeler l'API
+    # (en docker-compose : http://api:8000)
+    INTERNAL_API_URL: str = "http://api:8000"
+    # Port d'écoute du service web (Jinja + proxy /api/*)
+    WEB_PORT: int = 3000
 
     # Database
     DATABASE_URL: str = "postgresql://pentest:pentest@db:5432/pentestdb"

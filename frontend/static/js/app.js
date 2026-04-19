@@ -1,20 +1,19 @@
-/* PentestBox – app.js */
+/* ToolboxV8 – app.js */
 
 // ── Auth ────────────────────────────────────────────────
-function getToken() {
-  return localStorage.getItem('access_token');
-}
+// Authentification gérée côté serveur via cookie HttpOnly.
+// Le cookie est envoyé automatiquement par le navigateur,
+// donc pas besoin de lire/écrire un token en JS.
 
-function requireAuth() {
-  if (!getToken()) {
-    window.location.href = '/login';
-  }
-}
+function requireAuth() { /* no-op : garde côté serveur */ }
 
 function logout() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('username');
-  window.location.href = '/login';
+  // Soumet un POST /logout pour effacer le cookie côté serveur.
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/logout';
+  document.body.appendChild(form);
+  form.submit();
 }
 
 async function loadUserInfo() {
@@ -31,13 +30,12 @@ async function loadUserInfo() {
 
 // ── API fetch ────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
-  const token = getToken();
   try {
     const res = await fetch(path, {
+      credentials: 'same-origin',
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     });
@@ -45,7 +43,7 @@ async function apiFetch(path, options = {}) {
     updateApiStatus(res.ok || res.status < 500);
 
     if (res.status === 401) {
-      logout();
+      window.location.href = '/login';
       return null;
     }
     if (!res.ok) {
