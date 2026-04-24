@@ -12,6 +12,8 @@ import shutil
 import logging
 from typing import Any
 
+from app.modules.offensive.recon import _strip_nmap_fingerprints
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +41,7 @@ class ScanModule:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             return {
                 "command": " ".join(cmd),
-                "output": proc.stdout,
+                "output": _strip_nmap_fingerprints(proc.stdout),
                 "stderr": proc.stderr,
             }
         except subprocess.TimeoutExpired:

@@ -11,9 +11,22 @@ import socket
 import subprocess
 import shutil
 import logging
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+_NMAP_FINGERPRINT_RE = re.compile(
+    r"\n\d+ services? unrecognized despite returning data\..*?"
+    r"(?=\nDevice type:|\nService detection performed|\nNmap done:)",
+    re.DOTALL,
+)
+
+
+def _strip_nmap_fingerprints(text: str) -> str:
+    """Retire les blocs 'SF-Port...' dumpés par nmap pour les services
+    non identifiés — utile en CLI mais illisibles dans un rapport."""
+    return _NMAP_FINGERPRINT_RE.sub("", text) if text else text
 
 
 class ReconModule:
@@ -61,7 +74,7 @@ class ReconModule:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             return {
                 "command": " ".join(cmd),
-                "output": proc.stdout,
+                "output": _strip_nmap_fingerprints(proc.stdout),
                 "stderr": proc.stderr,
             }
         except subprocess.TimeoutExpired:

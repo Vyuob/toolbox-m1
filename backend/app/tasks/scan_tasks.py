@@ -36,7 +36,7 @@ def run_recon(self, target: str, options: dict) -> dict:
     p(20, f"DNS résolu : {dns.get('ip', 'N/A') if isinstance(dns, dict) else str(dns)[:60]}")
 
     p(25, "Préparation du scan Nmap...")
-    nmap_args = options.get("nmap_args", "-sV -O --top-ports 1000")
+    nmap_args = options.get("nmap_args", "-sV -O -Pn --top-ports 1000")
     p(30, f"Lancement Nmap avec les options : {nmap_args}")
     p(35, "Détection des ports ouverts en cours (TCP SYN scan)...")
     p(42, "Fingerprinting des services et versions...")
