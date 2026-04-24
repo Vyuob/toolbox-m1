@@ -232,8 +232,11 @@
           <td><code>{{ t.name }}</code></td>
           <td>{{ job.module }}</td>
           <td>
-            {% if t.error %}<span class="badge badge--high">Erreur</span>
-            {% else %}<span class="badge badge--info">Collecté</span>{% endif %}
+            {% if t.error or (t.stderr and not t.main_output and not t.results_list) %}
+              <span class="badge badge--high">Erreur</span>
+            {% else %}
+              <span class="badge badge--info">Collecté</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

@@ -290,6 +290,12 @@ const presets = {
     full:     { name: 'Full TCP', icon: 'flame',         desc: 'Tous les ports TCP, scripts NSE par défaut',        args: '-sS -sV -O -Pn -p- -T4 --script=default' },
     stealth:  { name: 'Stealth',  icon: 'eye-off',       desc: 'SYN scan lent avec fragmentation (évasion IDS)',    args: '-sS -Pn -T2 -f --top-ports 1000' },
   },
+  nmap_vuln: {
+    quick:    { name: 'Quick',    icon: 'zap',    desc: 'Scripts par défaut (rapide, peu intrusif)',                args: '--script=default -Pn' },
+    standard: { name: 'Standard', icon: 'shield', desc: 'Catégorie vuln — détection CVE et vulnérabilités',         args: '--script=vuln -Pn' },
+    full:     { name: 'Full',     icon: 'flame',  desc: 'vuln + exploit + auth — audit offensif complet',           args: '--script=vuln,exploit,auth -Pn' },
+    safe:     { name: 'Safe',     icon: 'eye-off',desc: 'Scripts non destructifs uniquement',                        args: '--script=safe -Pn' },
+  },
   nikto: {
     quick:    { name: 'Quick',    icon: 'zap',           desc: 'Tests de base, fichiers exposés',                   args: '-h {target} -port {port} -Tuning x -nointeractive' },
     standard: { name: 'Standard', icon: 'shield',        desc: 'Tuning x6 (CGI, fichiers, config, injection)',      args: '-h {target} -port {port} -Tuning x6 -nointeractive' },
@@ -298,8 +304,8 @@ const presets = {
   },
   sslyze: {
     cert:     { name: 'Certificat', icon: 'file-badge', desc: 'Infos certificat et chaîne uniquement',              args: '--certinfo {target}' },
-    standard: { name: 'Standard',   icon: 'shield',     desc: 'Audit TLS standard (protocoles + ciphers)',          args: '--regular {target}' },
-    full:     { name: 'Full',       icon: 'flame',      desc: 'Audit complet + Heartbleed + ROBOT',                 args: '--regular --certinfo --reneg --resum --heartbleed --robot {target}' },
+    standard: { name: 'Standard',   icon: 'shield',     desc: 'Audit TLS (Mozilla intermediate + certif + headers)', args: '--mozilla_config intermediate --certinfo --http_headers --elliptic_curves {target}' },
+    full:     { name: 'Full',       icon: 'flame',      desc: 'Audit complet + Heartbleed + ROBOT + legacy TLS',    args: '--certinfo --elliptic_curves --http_headers --tlsv1_2 --tlsv1_3 --sslv2 --sslv3 --reneg --resum --heartbleed --robot --compression --openssl_ccs {target}' },
   },
   sqlmap: {
     quick:      { name: 'Quick',      icon: 'zap',      desc: 'Test rapide niveau 1, risk 1',                       args: '-u {target} --batch --level=1 --risk=1' },
@@ -406,8 +412,17 @@ const moduleConfig = {
     iconBg: 'rgba(245,158,11,.15)', iconColor: '#fbbf24',
     options: () => `
       <div class="form-group">
-        <label>Port spécifique <span class="label-hint">(optionnel, défaut: 80)</span></label>
-        <input type="text" id="opt-port" placeholder="80" />
+        <label>Port(s) spécifique(s) <span class="label-hint">(ex: 80  ou  80,443  ou  1-1000)</span></label>
+        <input type="text" id="opt-port" value="80,443" />
+      </div>
+
+      <div class="form-group toggle-row">
+        <label>Activer Nmap NSE</label>
+        <label class="toggle"><input type="checkbox" id="opt-nmap_vuln" checked onchange="toggleCmd('nmap_vuln-cmd', this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="nmap_vuln-cmd" class="cmd-block">
+        <div class="cmd-label"><i data-lucide="crosshair"></i> Nmap NSE — Scripts de détection de vulnérabilités</div>
+        ${profileBlock('nmap_vuln', 'nmap_vuln_profile', 'standard')}
       </div>
 
       <div class="form-group toggle-row">
@@ -733,13 +748,13 @@ function selectModule(name, el) {
 
 function collectOptions() {
   const opts = {};
-  document.querySelectorAll('#module-options input, #module-options select').forEach(el => {
+  document.querySelectorAll('#module-options input, #module-options select, #module-options textarea').forEach(el => {
     // Les inputs techniques du picker (type=file) sont ignorés
     if (el.type === 'file') return;
     const key = el.id.replace('opt-', '');
     if (!el.id || !el.id.startsWith('opt-')) return;
     if (el.type === 'checkbox') opts[key] = el.checked;
-    else if (el.value !== '') opts[key] = el.value;
+    else if (el.value !== '') opts[key] = el.value.trim();
   });
 
   // Sérialisation des pickers de wordlists en fonction du mode exploit actif

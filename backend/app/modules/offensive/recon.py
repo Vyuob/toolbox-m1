@@ -85,8 +85,25 @@ class ReconModule:
     def _whois(self, target: str) -> str:
         if not shutil.which("whois"):
             return "whois non installé"
-        try:
-            proc = subprocess.run(["whois", target], capture_output=True, text=True, timeout=30)
-            return proc.stdout
-        except Exception as e:
-            return str(e)
+
+        # Les registries refusent les sous-domaines ("Malformed request").
+        # On essaie d'abord tel quel ; si ça échoue, on retombe sur le domaine
+        # racine (2 derniers labels — suffit pour .com/.org/.fr/... ; imparfait
+        # pour .co.uk mais suffisant pour un usage pédagogique).
+        candidates = [target]
+        host = target.split("://", 1)[-1].split("/")[0].strip(".")
+        labels = host.split(".")
+        if len(labels) > 2:
+            candidates.append(".".join(labels[-2:]))
+
+        last_output = ""
+        for q in candidates:
+            try:
+                proc = subprocess.run(["whois", q], capture_output=True, text=True, timeout=30)
+                out = proc.stdout or ""
+                last_output = out
+                if "Malformed request" not in out and "No match" not in out.lower():
+                    return out
+            except Exception as e:
+                last_output = str(e)
+        return last_output or "whois : aucune donnée"

@@ -26,8 +26,22 @@ Le rapport PDF reprend ces champs un par un.
 
 | Option | Type | Défaut | Description |
 |--------|------|--------|-------------|
-| `nmap_args` | string | `-sV -O --top-ports 1000` | Arguments Nmap (utilisés tels quels) |
+| `nmap_args` | string | `-sV -O -Pn --top-ports 1000` | Arguments Nmap (utilisés tels quels). `-Pn` permet de scanner les hosts qui bloquent ICMP (firewall Windows, gateways). |
 | `whois` | bool | `false` | Activer le lookup whois |
+
+**Presets Nmap disponibles (UI)** :
+
+| Profil | Arguments |
+|--------|-----------|
+| Quick | `-sS -Pn --top-ports 100 -T4` |
+| Standard | `-sV -O -Pn --top-ports 1000` |
+| Full TCP | `-sS -sV -O -Pn -p- -T4 --script=default` |
+| Stealth | `-sS -Pn -T2 -f --top-ports 1000` |
+
+**Post-traitement** :
+
+- Les blocs `==NEXT SERVICE FINGERPRINT==` dumpés par nmap pour les services inconnus sont filtrés de la sortie (inutiles dans un rapport).
+- Whois retombe automatiquement sur le domaine racine si le sous-domaine est rejeté (`scanme.nmap.org` → `nmap.org`).
 
 **Retour (exemple)** :
 
@@ -35,7 +49,7 @@ Le rapport PDF reprend ces champs un par un.
 {
   "target": "192.168.1.1",
   "dns":    {"command": "resolve 192.168.1.1", "output": "; Résolution DNS…\n;; ANSWER SECTION:\n192.168.1.1. IN A 192.168.1.1", "resolved_ip": "192.168.1.1"},
-  "nmap":   {"command": "nmap -sV --top-ports 1000 192.168.1.1", "output": "Starting Nmap 7.99…\nPORT  STATE…", "stderr": ""},
+  "nmap":   {"command": "nmap -sV -O -Pn --top-ports 1000 192.168.1.1", "output": "Starting Nmap 7.99…\nPORT  STATE…", "stderr": ""},
   "whois":  "…"
 }
 ```
@@ -46,32 +60,45 @@ Le rapport PDF reprend ces champs un par un.
 
 **Fichier** : [backend/app/modules/offensive/scan.py](../backend/app/modules/offensive/scan.py)
 
-**Outils** : `nmap --script=vuln`, `nikto`, `sslyze` (binaire Kali).
+**Outils** : `nmap --script=<catégorie>`, `nikto`, `sslyze` (binaire Kali).
 
-**Profils Nikto** (chips UI) :
+**Profils Nmap NSE** (chips UI) — catégorie de scripts appliquée :
 
-| Profil | Tuning |
-|--------|--------|
-| Quick | `-Tuning x` (tests de base) |
-| Standard | `-Tuning x6` (CGI + fichiers + config + injection) |
-| Full | `-Tuning 0123456789abc` (tous les modules) |
-| Evasion | `-Tuning x -evasion 1` |
+| Profil | Scripts |
+|--------|---------|
+| Quick | `--script=default -Pn` |
+| Standard | `--script=vuln -Pn` (détection CVE, défaut) |
+| Full | `--script=vuln,exploit,auth -Pn` |
+| Safe | `--script=safe -Pn` (non destructif) |
 
-**Profils SSLyze** (chips UI) :
+Timeout fixé à **20 minutes** (cible un port précis avec l'option `port` si ta cible a beaucoup de ports ouverts).
+
+**Profils Nikto** (chips UI) — timeout Python adapté par profil :
+
+| Profil | Tuning | Timeout |
+|--------|--------|---------|
+| Quick | `-Tuning x` (tests de base) | 10 min |
+| Standard | `-Tuning x6` (CGI + fichiers + config + injection) | 30 min |
+| Full | `-Tuning 0123456789abc` (tous les modules) | 60 min |
+| Evasion | `-Tuning x -evasion 1` | 15 min |
+
+**Profils SSLyze** (chips UI) — sslyze ≥ 5.x, `--regular` a disparu, on passe les scans individuellement ou via `--mozilla_config` :
 
 | Profil | Arguments |
 |--------|-----------|
 | Certificat | `--certinfo` |
-| Standard | `--regular` |
-| Full | `--regular --certinfo --reneg --resum --heartbleed --robot` |
+| Standard | `--mozilla_config intermediate --certinfo --http_headers --elliptic_curves` |
+| Full | `--certinfo --elliptic_curves --http_headers --tlsv1_2 --tlsv1_3 --tlsv1_1 --tlsv1 --sslv2 --sslv3 --compression --reneg --resum --heartbleed --robot --openssl_ccs --fallback --ems --early_data` |
 
 **Options UI** :
 
 | Option | Type | Défaut | Description |
 |--------|------|--------|-------------|
+| `nmap_vuln` | bool | `true` | Activer Nmap NSE |
 | `nikto` | bool | `true` | Activer Nikto |
 | `sslyze` | bool | `false` | Activer SSLyze |
-| `port` | int | `80` | Port web testé |
+| `port` | string | `"80,443"` | Port(s) web testé(s). Accepte `80`, `80,443`, `1-1000` |
+| `nmap_vuln_profile` | enum | `standard` | Profil Nmap NSE (`quick` / `standard` / `full` / `safe`) |
 | `nikto_profile` | enum | `standard` | Profil Nikto |
 | `sslyze_profile` | enum | `standard` | Profil SSLyze |
 

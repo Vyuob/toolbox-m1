@@ -5,6 +5,42 @@ Format : `[version] – date – description`
 
 ---
 
+## [1.2.0] – 2026-04-24 – Stabilisation modules Recon et Scan
+
+### Corrige
+
+#### Reconnaissance (`recon`)
+- Ajoute `-Pn` dans les 4 presets Nmap UI et le défaut backend. Les cibles derrière un pare-feu qui bloque ICMP (Windows Defender, gateways WSL/Hyper-V) peuvent maintenant être scannées.
+- Whois : retombe automatiquement sur le domaine racine si le registry rejette le sous-domaine (`scanme.nmap.org` → `nmap.org`, plus de "Malformed request").
+- Filtre les blocs `==NEXT SERVICE FINGERPRINT==` (dumps d'octets bruts pour services inconnus) de la sortie nmap — gain typique ~90 % sur la taille des rapports.
+
+#### Scan de vulnérabilités (`scan`)
+- Toggle **Activer Nmap NSE** désormais exposé dans l'UI (auparavant toujours actif, non désactivable).
+- Nmap NSE propose 4 profils : Quick (`--script=default`), Standard (`--script=vuln`), Full (`--script=vuln,exploit,auth`), Safe (`--script=safe`).
+- Timeout Nmap NSE porté à 20 min (était 10 min).
+- Nikto : timeout adapté par profil — Quick 10 min, Standard 30 min, Full 60 min, Evasion 15 min (évite les coupures prématurées).
+- SSLyze modernisé : `--regular` remplacé par `--mozilla_config intermediate` + scans individuels (sslyze ≥ 5.x, l'argument `--regular` a été retiré).
+- Champ `port` pré-rempli avec `80,443` (était un placeholder grisé non envoyé au backend, provoquant des scans sur 1000 ports et des timeouts).
+
+#### Rapport (`reporting/generator.py`)
+- Les outils désactivés (dict vide côté backend) n'apparaissent plus dans le PDF/HTML.
+- Badge "Erreur" dans le tableau synthétique quand l'outil renvoie stderr sans sortie utile (au lieu de "Collecté" trompeur).
+
+#### Frontend (`modules.html`)
+- `collectOptions()` lit maintenant aussi les `<textarea>` (auparavant seuls `input`/`select` étaient lus → les args Nmap du textarea n'étaient jamais envoyés au backend, qui tombait sur son défaut).
+- Pré-remplissage du champ port avec `80,443` dans le module Scan.
+- Presets SSLyze frontend alignés avec sslyze 6.x.
+
+### Ajoute
+- `_strip_nmap_fingerprints()` helper partagé entre `recon.py` et `scan.py`.
+- Constante `_NMAP_VULN_PROFILES` (profils NSE) et `_NIKTO_PROFILES` enrichie d'un champ `timeout` par profil.
+
+### Documentation
+- `docs/modules.md` : sections Recon et Scan réécrites avec les nouveaux profils et comportements.
+- `docs/usage.md` : table des options clés mise à jour, liste des chips par module.
+
+---
+
 ## [1.1.0] – 2026-04-12 – Pages frontend + routes defensives + GitHub
 
 ### Ajoute

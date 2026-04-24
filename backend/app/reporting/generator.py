@@ -116,6 +116,9 @@ def _build_tools_sections(result_data) -> list[dict]:
         # 'target' et similaires (scalaires d'info) ne sont pas des outils à déployer
         if tool in ("target", "mode") and not isinstance(data, (dict, list)):
             continue
+        # Outils désactivés par l'utilisateur : dict vide / None / "" → on n'affiche pas
+        if not data or (isinstance(data, dict) and not any(data.values())):
+            continue
         sections.append(_format_tool_data(tool, data))
     return sections
 

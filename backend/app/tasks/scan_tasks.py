@@ -82,13 +82,17 @@ def run_scan(self, target: str, options: dict) -> dict:
     from app.modules.offensive.scan import ScanModule
     module = ScanModule()
 
-    p(12, "Chargement des scripts Nmap NSE (vuln, safe, default)...")
-    p(15, "Lancement du scan Nmap avec scripts de détection de vulnérabilités...")
-    p(20, "Vérification CVE-2021-44228 (Log4Shell), CVE-2022-22965 (Spring4Shell)...")
-    p(28, "Analyse des services SMB, FTP, SSH, HTTP pour failles connues...")
-    p(35, "Nmap NSE : vérification des certificats SSL expirés ou faibles...")
-    nmap_vuln = module._nmap_vuln(target, options)
-    p(42, f"Nmap NSE terminé — {len(nmap_vuln) if isinstance(nmap_vuln, (list, dict)) else 0} résultat(s) trouvé(s).")
+    nmap_vuln = {}
+    if options.get("nmap_vuln", True):
+        p(12, "Chargement des scripts Nmap NSE (vuln, safe, default)...")
+        p(15, "Lancement du scan Nmap avec scripts de détection de vulnérabilités...")
+        p(20, "Vérification CVE-2021-44228 (Log4Shell), CVE-2022-22965 (Spring4Shell)...")
+        p(28, "Analyse des services SMB, FTP, SSH, HTTP pour failles connues...")
+        p(35, "Nmap NSE : vérification des certificats SSL expirés ou faibles...")
+        nmap_vuln = module._nmap_vuln(target, options)
+        p(42, f"Nmap NSE terminé — {len(nmap_vuln) if isinstance(nmap_vuln, (list, dict)) else 0} résultat(s) trouvé(s).")
+    else:
+        p(25, "Nmap NSE désactivé.")
 
     nikto_result = {}
     if options.get("nikto", True):

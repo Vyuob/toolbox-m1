@@ -36,10 +36,12 @@ Le job s'exécute en arrière-plan. Son statut se met à jour automatiquement.
 
 ### Profils par chips
 
-Les modules offensifs proposent désormais des **profils prédéfinis sous forme de chips**, plus besoin d'éditer la ligne de commande :
+Les modules offensifs proposent des **profils prédéfinis sous forme de chips**, plus besoin d'éditer la ligne de commande :
 
-- **Nikto** : Quick / Standard / Full / Evasion
-- **SSLyze** : Cert / Standard / Full
+- **Nmap (Reconnaissance)** : Quick / Standard / Full TCP / Stealth — tous incluent `-Pn` par défaut pour scanner les hosts qui bloquent ICMP.
+- **Nmap NSE (Scan Vulnérabilités)** : Quick / Standard / Full / Safe
+- **Nikto** : Quick / Standard / Full / Evasion — timeout adapté par profil (10 à 60 min)
+- **SSLyze** : Cert / Standard / Full — `--regular` obsolète remplacé par `--mozilla_config intermediate` (sslyze ≥ 5.x)
 - **SQLmap** : Quick / Standard / Aggressive / Dump
 - **MSF (Metasploit)** : Handler / EternalBlue / PortScan / SMB
 - **ZAP Spider** : Quick / Standard / Deep
@@ -75,9 +77,9 @@ curl -X POST http://localhost:8000/api/modules/launch \
 
 | Module | Cible | Options clés |
 |--------|-------|-------------|
-| `recon` | IP, domaine | `whois: true`, `nmap_args` |
-| `scan` | IP, domaine | `nikto: true`, `sslyze: true`, `port` |
-| `exploit` | URL/IP | `mode: sqlmap\|hydra\|msf` |
+| `recon` | IP, domaine | `whois: true`, `nmap_args` (défaut `-sV -O -Pn --top-ports 1000`) |
+| `scan` | IP, domaine | `nmap_vuln: true`, `nikto: true`, `sslyze: true`, `port` (défaut `"80,443"`), `nmap_vuln_profile`, `nikto_profile`, `sslyze_profile` |
+| `exploit` | URL/IP | `mode: sqlmap\|hydra\|msf\|john` |
 | `web_scan` | URL | `zap: true`, `scan_type: spider\|active` |
 
 ---
