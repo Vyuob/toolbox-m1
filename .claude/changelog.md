@@ -5,6 +5,17 @@ Format : `[version] – date – description`
 
 ---
 
+## [1.2.1] – 2026-04-24 – Création automatique du compte admin côté Linux/macOS
+
+### Corrige
+- `scripts/start.sh` : ajoute la fonction `ensure_admin()` qui crée automatiquement le compte admin (`admin` / `admin123`) après démarrage de la stack. Auparavant seul `start.ps1` (Windows) créait le compte, provoquant une erreur "ID ou mot de passe incorrect" pour tout utilisateur Linux/macOS après un clone frais (DB vide).
+- La fonction vérifie d'abord via `POST /api/auth/token` si le compte existe ; ne le crée que si absent.
+
+### Documentation
+- `docs/installation.md` : précise que le compte admin est créé automatiquement par les scripts de démarrage, aligne les identifiants documentés (`admin` / `admin123`, anciennement `Admin1234!` incohérent avec le script).
+
+---
+
 ## [1.2.0] – 2026-04-24 – Stabilisation modules Recon et Scan
 
 ### Corrige
