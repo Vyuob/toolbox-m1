@@ -55,7 +55,7 @@ class ReconModule:
         if not shutil.which("nmap"):
             return {"error": "nmap non installé"}
 
-        args = options.get("nmap_args", "-sV -O --top-ports 1000")
+        args = options.get("nmap_args", "-sV -O -Pn --top-ports 1000")
         try:
             cmd = ["nmap"] + args.split() + [target]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
