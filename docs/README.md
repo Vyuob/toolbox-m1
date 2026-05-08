@@ -28,6 +28,8 @@ Reconnaissance → Scan de vulnérabilités → Exploitation → Scan Web/API
 
 Le parcours utilisateur tient en 3 clics : **choisir le module → saisir la cible → cliquer sur Lancer**. Le rapport PDF est généré automatiquement et reprend la sortie CLI de chaque outil.
 
+> **Mise à jour avril 2026 (v1.2.x)** : profils chips étendus à Nmap NSE (Quick/Standard/Full/Safe), timeouts dynamiques par profil Nikto, SSLyze migré sur sslyze ≥ 5.x (`--mozilla_config`), filtre des fingerprints nmap, whois avec fallback domaine racine, création automatique du compte admin sous Linux/macOS. Voir [.claude/changelog.md](../.claude/changelog.md) pour le détail.
+
 ### Technologies principales
 
 - **Backend** : Python 3.11 + FastAPI (2 services : api + web) + Celery

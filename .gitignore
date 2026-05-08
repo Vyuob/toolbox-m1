@@ -61,3 +61,7 @@ minio_data/
 
 # ---- Node (si utilisé) ----
 node_modules/
+
+# ---- État local Claude Code (assistant IA, spécifique à chaque dev) ----
+.claude/scheduled_tasks.lock
+.claude/settings.local.json

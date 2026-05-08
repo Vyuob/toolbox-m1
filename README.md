@@ -77,6 +77,12 @@ Chaque outil expose des **profils par chips** (Quick / Standard / Full / …) qu
 
 - **Auth par formulaire web** + cookie HttpOnly (signé JWT côté backend) ; `POST /api/auth/token` reste utilisable pour les clients externes
 - **RBAC** à 3 rôles : `admin`, `analyst`, `reader`
+- **Création auto du compte admin** (`admin` / `admin123`) au premier démarrage via `start.sh` ou `start.ps1`
+- **Profils chips** sur tous les modules offensifs — Nmap recon (Quick/Standard/Full TCP/Stealth), **Nmap NSE** (Quick/Standard/Full/Safe), Nikto (Quick/Standard/Full/Evasion), SSLyze (Cert/Standard/Full), SQLmap, Metasploit, ZAP
+- **Toggles indépendants** dans le module Scan — Nmap NSE / Nikto / SSLyze activables séparément, les outils désactivés sont masqués du rapport
+- **Timeouts adaptés** par profil Nikto (10/15/30/60 min) pour éviter les coupures sur cibles distantes
+- **Filtre des dumps de fingerprints nmap** dans la sortie (gain ~90 % sur la taille des rapports)
+- **Whois avec fallback** sur le domaine racine pour les sous-domaines
 - **Upload de wordlists** personnelles via `POST /api/modules/wordlist` (volume partagé api↔worker) — utilisable par Hydra et John
 - **Hydra** : 3 sources au choix pour users/passwords (fichier uploadé, liste manuelle dans une modale, rockyou.txt par défaut)
 - **John the Ripper jumbo** : bcrypt, sha512crypt, NTLM, argon2, keepass, zip… (304 formats)

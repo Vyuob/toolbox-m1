@@ -31,3 +31,18 @@ alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
 alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
   (msg:"WEB-ATTACK Directory Traversal"; content:"../"; \
    sid:9000006; rev:1; classtype:web-application-attack;)
+
+# Détection scan Nikto (User-Agent caractéristique)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+  (msg:"SCAN Nikto Web Scanner"; content:"User-Agent|3a| Mozilla/5.00 (Nikto"; nocase; \
+   sid:9000007; rev:1; classtype:web-application-activity;)
+
+# Détection scan SQLmap (User-Agent par défaut)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+  (msg:"SCAN sqlmap"; content:"User-Agent|3a| sqlmap"; nocase; \
+   sid:9000008; rev:1; classtype:web-application-attack;)
+
+# Détection injection Log4Shell (CVE-2021-44228)
+alert tcp $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS \
+  (msg:"WEB-ATTACK Log4Shell JNDI injection"; content:"|24 7B|jndi|3a|"; nocase; \
+   sid:9000009; rev:1; classtype:web-application-attack;)
