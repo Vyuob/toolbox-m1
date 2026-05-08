@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # ============================================================
 # start.sh – Lance la stack ToolboxV8 complète via Docker
-# Usage : ./scripts/start.sh [--dev | --prod | --stop | --logs]
+# Usage : ./scripts/start.sh [--dev | --prod | --stop | --logs | --status | --version]
+#
+# Le compte admin (admin / admin123) est créé automatiquement après
+# démarrage si absent (voir ensure_admin plus bas).
 # ============================================================
 
 set -euo pipefail
+
+TOOLBOX_VERSION="1.2.2"
 
 COMPOSE_FILE="docker/docker-compose.yml"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -140,14 +145,15 @@ status() {
 check_deps
 
 case "${1:-start}" in
-  --dev)   start dev ;;
-  --prod)  start prod ;;
-  --stop)  stop ;;
-  --logs)  show_logs ;;
-  --status) status ;;
-  start)   start prod ;;
+  --dev)     start dev ;;
+  --prod)    start prod ;;
+  --stop)    stop ;;
+  --logs)    show_logs ;;
+  --status)  status ;;
+  --version) echo "ToolboxV8 v$TOOLBOX_VERSION" ;;
+  start)     start prod ;;
   *)
-    echo "Usage: $0 [--dev | --prod | --stop | --logs | --status]"
+    echo "Usage: $0 [--dev | --prod | --stop | --logs | --status | --version]"
     exit 1
     ;;
 esac

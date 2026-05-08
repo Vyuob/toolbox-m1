@@ -5,6 +5,31 @@ Format : `[version] – date – description`
 
 ---
 
+## [1.2.2] – 2026-05-09 – Refresh transverse documentation et configuration
+
+### Documentation
+- `README.md` : section "Fonctionnalités clés" alignée sur l'état v1.2.x (toggle Nmap NSE, profils chips étendus, timeouts dynamiques, filtre fingerprints, whois fallback, création auto admin).
+- `docs/README.md` : note de mise à jour mai 2026 pointant vers ce changelog.
+- `pentest_rapport_generator/README.txt` : note clarifiant que c'est la V1 prototype, V2 ReportLab dans `backend/app/reporting/`.
+
+### Configuration
+- `.env.example` : ajoute `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL` (compte admin créé automatiquement par les scripts de démarrage).
+- `.gitignore` : exclut `.claude/scheduled_tasks.lock` et `.claude/settings.local.json` (état local Claude Code, spécifique à chaque dev).
+
+### Sécurité défensive
+- `siem/snort/local.rules` : ajoute 3 nouvelles règles — détection scan Nikto (User-Agent), détection scan sqlmap (User-Agent), détection injection Log4Shell (CVE-2021-44228).
+
+### Backend
+- `backend/app/__init__.py` : ajoute la constante `__version__ = "1.2.2"` et un docstring de référence.
+
+### Frontend
+- `frontend/templates/dashboard.html` : ajoute un favicon SVG (bouclier) et une meta description.
+
+### Docker
+- `docker/docker-compose.yml` : ajoute un header de présentation décrivant les services et le mode de démarrage.
+
+---
+
 ## [1.2.1] – 2026-04-24 – Création automatique du compte admin côté Linux/macOS
 
 ### Corrige

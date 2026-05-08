@@ -1,3 +1,14 @@
+# ============================================================
+# ToolboxV8 – stack complète Docker Compose
+#
+# Services applicatifs : api (FastAPI REST), web (FastAPI HTML), worker (Celery + Kali)
+# Infra : postgres, redis, minio, elasticsearch, logstash, kibana, snort
+#
+# Démarrage : ./scripts/start.sh   (Linux/macOS)
+#             .\scripts\start.ps1  (Windows)
+# Le compte admin (admin / admin123) est créé automatiquement par les scripts.
+# ============================================================
+
 services:
 
   # ── API FastAPI (pure API, /api/*) ────────────────────────────
