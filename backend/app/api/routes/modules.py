@@ -20,8 +20,9 @@ WORDLIST_DIR.mkdir(parents=True, exist_ok=True)
 MAX_WORDLIST_BYTES = 200 * 1024 * 1024  # 200 MB
 
 MODULES = {
-    "recon":       "tasks.run_recon",
-    "scan":        "tasks.run_scan",
+    "recon":         "tasks.run_recon",
+    "passive_recon": "tasks.run_passive_recon",
+    "scan":          "tasks.run_scan",
     "exploit":     "tasks.run_exploit",
     "web_scan":    "tasks.run_web_scan",
 }
@@ -109,10 +110,11 @@ async def upload_wordlist(
 def list_modules():
     return {
         "modules": [
-            {"name": "recon",    "description": "Reconnaissance OSINT & Nmap"},
-            {"name": "scan",     "description": "Scan de vulnérabilités (OpenVAS/Nessus/Nikto)"},
+            {"name": "recon",         "description": "Reconnaissance active — DNS, Nmap, Whois, WhatWeb"},
+            {"name": "passive_recon", "description": "Reconnaissance passive — Google Dorks & OSINT"},
+            {"name": "scan",          "description": "Scan de vulnérabilités (OpenVAS/Nessus/Nikto)"},
             {"name": "exploit",  "description": "Exploitation (Metasploit, SQLmap, Hydra, John the Ripper)"},
-            {"name": "web_scan", "description": "Analyse Web/API (OWASP ZAP, SSLyze)"},
+            {"name": "web_scan", "description": "Analyse Web/API (OWASP ZAP, Gobuster, Dep-Check)"},
         ]
     }
 
@@ -126,6 +128,9 @@ def _validate_target(target: str, module: str = "", options: dict | None = None)
     # John the Ripper : la cible est un hash (ou un chemin de fichier de hashes),
     # pas une IP / domaine / URL. On accepte tout non-vide.
     if module == "exploit" and (options or {}).get("mode") == "john":
+        return None
+    # Reconnaissance passive (dorks) : champ libre — marque, nom, produit, etc.
+    if module == "passive_recon":
         return None
     # URL (http/https) — accepté pour SQLmap, ZAP, etc.
     if re.match(r"^https?://", t):
@@ -236,6 +241,7 @@ def get_job(
     def _job_out():
         return {"id": job.id, "module": job.module, "target": job.target,
                 "status": job.status, "created_at": job.created_at,
+                "options": job.options,
                 "result": job.result}
 
     # Job déjà finalisé en DB → retourner les logs stockés

@@ -50,11 +50,19 @@
 
       <!-- Sélecteur de module -->
       <div class="module-cards">
-        <div class="module-card active" data-module="recon" onclick="selectModule('recon',this)">
+        <div class="module-card active" data-module="passive_recon" onclick="selectModule('passive_recon',this)">
+          <div class="mc-icon" style="background:rgba(20,184,166,.15);color:#2dd4bf"><i data-lucide="search" class="icon-lg"></i></div>
+          <div class="mc-body">
+            <div class="mc-name">Reconnaissance passive</div>
+            <div class="mc-desc">Google Dorks · OSINT</div>
+          </div>
+          <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
+        </div>
+        <div class="module-card" data-module="recon" onclick="selectModule('recon',this)">
           <div class="mc-icon" style="background:rgba(59,130,246,.15);color:#60a5fa"><i data-lucide="radar" class="icon-lg"></i></div>
           <div class="mc-body">
             <div class="mc-name">Reconnaissance</div>
-            <div class="mc-desc">DNS · Nmap · Whois</div>
+            <div class="mc-desc">DNS · Nmap · Whois · WhatWeb</div>
           </div>
           <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
         </div>
@@ -78,7 +86,7 @@
           <div class="mc-icon" style="background:rgba(139,92,246,.15);color:#a78bfa"><i data-lucide="globe" class="icon-lg"></i></div>
           <div class="mc-body">
             <div class="mc-name">Web / API</div>
-            <div class="mc-desc">OWASP ZAP · Dep-Check</div>
+            <div class="mc-desc">ZAP · Gobuster · Dep-Check</div>
           </div>
           <div class="mc-arrow"><i data-lucide="chevron-right"></i></div>
         </div>
@@ -90,12 +98,12 @@
         <!-- Formulaire de lancement -->
         <div class="launch-panel">
           <div class="panel-header">
-            <h2 class="panel-title" id="form-title">Reconnaissance</h2>
-            <span class="module-badge" id="form-badge">recon</span>
+            <h2 class="panel-title" id="form-title">Reconnaissance passive</h2>
+            <span class="module-badge" id="form-badge">passive_recon</span>
           </div>
           <form id="launch-form" onsubmit="launchScan(event)">
             <div class="form-group">
-              <label>Cible <span class="label-hint">(IP, domaine ou URL)</span></label>
+              <label>Cible</label>
               <input type="text" id="target" placeholder="ex: 192.168.1.1 ou example.com" required oninput="validateTarget()" />
               <div id="target-error" class="field-error" style="display:none">
                 <i data-lucide="alert-circle"></i>
@@ -154,6 +162,9 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Résultats OSINT / Dorks (reconnaissance passive) -->
+              <div id="dork-results" class="dork-results" style="display:none"></div>
 
               <!-- Actions quand terminé -->
               <div id="prog-actions" style="display:none;margin-top:16px;gap:10px">
@@ -274,6 +285,46 @@
   border-color: transparent; color: #fff;
 }
 .btn-sm.btn-primary:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; }
+
+/* ── OSINT / Google Dorks ── */
+.dork-results { margin-top: 16px; }
+.dork-results-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 12px;
+}
+.dork-results-head h3 { font-size: .95rem; font-weight: 700; color: #f1f5f9; }
+.dork-results-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dork-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.dork-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px;
+  background: rgba(15,23,42,.6); border: 1px solid rgba(255,255,255,.06); border-radius: 8px;
+}
+.dork-item:hover { border-color: rgba(45,212,191,.25); background: rgba(20,184,166,.06); }
+.dork-item-body { flex: 1; min-width: 0; }
+.dork-item-name { font-size: .85rem; font-weight: 600; color: #e2e8f0; }
+.dork-item-query {
+  font-family: monospace; font-size: .78rem; color: #94a3b8; margin-top: 4px;
+  word-break: break-all;
+}
+.dork-item-cat { font-size: .7rem; color: #64748b; margin-top: 2px; }
+.dork-open-btn {
+  flex-shrink: 0; padding: 6px 10px; font-size: .75rem;
+  background: rgba(20,184,166,.15); border: 1px solid rgba(45,212,191,.3);
+  color: #2dd4bf; border-radius: 6px; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.dork-open-btn:hover { background: rgba(20,184,166,.25); color: #5eead4; }
+.dork-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.dork-check {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px;
+  background: rgba(15,23,42,.5); border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px; cursor: pointer; font-size: .8rem;
+}
+.dork-check:hover { border-color: rgba(45,212,191,.2); }
+.dork-check input { margin-top: 3px; accent-color: #2dd4bf; }
+.dork-check-label { color: #cbd5e1; line-height: 1.35; }
+.dork-check-desc { font-size: .72rem; color: #64748b; margin-top: 2px; }
+.dork-section-label { font-size: .75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin: 12px 0 6px; }
 </style>
 
 <script src="/static/js/app.js"></script>
@@ -338,7 +389,226 @@ const presets = {
     owasp:    { name: 'OWASP', icon: 'shield', desc: 'OWASP Top 10 : XSS, SQLi, CSRF, SSRF',                  args: 'active-scan {target} --recursive --scanners xss,sqli,csrf,ssrf' },
     full:     { name: 'Full',  icon: 'flame',  desc: 'Tous les scanners, intensité haute (long)',             args: 'active-scan {target} --recursive --scanners all --strength high' },
   },
+  whatweb: {
+    quick:    { name: 'Quick',    icon: 'zap',    desc: 'Passif (-a 1) — rapide, peu intrusif',                    args: '-a 1 --color=never' },
+    standard: { name: 'Standard', icon: 'shield', desc: 'Agressif (-a 3) — CMS, plugins, versions',                args: '-a 3 -v --color=never' },
+    full:     { name: 'Full',     icon: 'flame',  desc: 'Très agressif (-a 4) — fingerprinting complet',           args: '-a 4 -v --color=never' },
+  },
+  gobuster: {
+    quick:    { name: 'Quick',    icon: 'zap',    desc: 'dirb/common.txt — scan rapide des chemins courants',      args: 'quick' },
+    standard: { name: 'Standard', icon: 'shield', desc: 'dirbuster small — bon compromis vitesse / couverture',    args: 'standard' },
+    full:     { name: 'Full',     icon: 'flame',  desc: 'dirbuster medium — énumération plus exhaustive (long)',   args: 'full' },
+  },
 };
+
+// ── Catalogue Google Dorks (reconnaissance passive) ─────────
+const DORK_CATALOG = {
+  // ── Mot-clé général (cible libre : nom, marque, sujet…) ──
+  kw_pdf:           { name: 'PDF mentionnant la cible',  category: 'Mot-clé',    query: '"{target}" filetype:pdf' },
+  kw_office:        { name: 'Documents Office',          category: 'Mot-clé',    query: '"{target}" (filetype:doc | filetype:docx | filetype:xls | filetype:xlsx)' },
+  kw_intitle:       { name: 'Pages avec ce titre',       category: 'Mot-clé',    query: 'intitle:"{target}"' },
+  kw_cv:            { name: 'CV / Curriculum',           category: 'Mot-clé',    query: '"{target}" ("CV" | "curriculum vitae" | "resume") filetype:pdf' },
+  kw_leaks:         { name: 'Fuites / breaches',         category: 'Mot-clé',    query: '"{target}" ("leaked" | "leak" | "breach" | "dump" | "database")' },
+  kw_creds:         { name: 'Mentions de credentials',   category: 'Mot-clé',    query: '"{target}" ("password" | "passwd" | "credentials" | "api_key")' },
+  // ── Réseaux sociaux / plateformes ──
+  social_linkedin:  { name: 'LinkedIn',                  category: 'Réseaux sociaux', query: '"{target}" site:linkedin.com' },
+  social_github:    { name: 'GitHub',                    category: 'Réseaux sociaux', query: '"{target}" site:github.com' },
+  social_twitter:   { name: 'Twitter / X',               category: 'Réseaux sociaux', query: '"{target}" (site:twitter.com | site:x.com)' },
+  social_reddit:    { name: 'Reddit',                    category: 'Réseaux sociaux', query: '"{target}" site:reddit.com' },
+  social_facebook:  { name: 'Facebook',                  category: 'Réseaux sociaux', query: '"{target}" site:facebook.com' },
+  social_pastebin:  { name: 'Pastebin / pastes',         category: 'Réseaux sociaux', query: '"{target}" (site:pastebin.com | site:paste.ee | site:ghostbin.com)' },
+  // ── Dorks domaine (cible = domaine ou IP) ──
+  site:             { name: 'Pages indexées',            category: 'Domaine',    query: 'site:{target}' },
+  subdomains:       { name: 'Sous-domaines',             category: 'Domaine',    query: 'site:*.{target} -www' },
+  pdf:              { name: 'PDF du domaine',            category: 'Domaine',    query: 'site:{target} ext:pdf' },
+  office:           { name: 'Office du domaine',         category: 'Domaine',    query: 'site:{target} (ext:doc | ext:docx | ext:xls | ext:xlsx)' },
+  configs:          { name: 'Fichiers de config',        category: 'Domaine',    query: 'site:{target} (ext:conf | ext:cfg | ext:ini | ext:env)' },
+  sql_logs:         { name: 'SQL / logs / backups',      category: 'Domaine',    query: 'site:{target} (ext:sql | ext:log | ext:bak | ext:backup)' },
+  admin:            { name: "Panneaux d'admin",          category: 'Domaine',    query: 'site:{target} (inurl:admin | inurl:wp-admin)' },
+  login:            { name: 'Pages de connexion',        category: 'Domaine',    query: 'site:{target} (inurl:login | inurl:signin)' },
+  directory_listing:{ name: 'Directory listing',         category: 'Domaine',    query: 'site:{target} intitle:"index of"' },
+  api_keys:         { name: 'Secrets exposés',           category: 'Domaine',    query: 'site:{target} ("api_key" | "password" | "secret")' },
+  emails:           { name: 'Emails du domaine',         category: 'Domaine',    query: 'intext:"@{target}"' },
+  errors:           { name: "Messages d'erreur",         category: 'Domaine',    query: 'site:{target} ("sql syntax" | "fatal error" | "stack trace")' },
+};
+
+const DORK_ENGINES = {
+  google:     { name: 'Google',     url: q => `https://www.google.com/search?q=${encodeURIComponent(q)}` },
+  bing:       { name: 'Bing',       url: q => `https://www.bing.com/search?q=${encodeURIComponent(q)}` },
+  duckduckgo: { name: 'DuckDuckGo', url: q => `https://duckduckgo.com/?q=${encodeURIComponent(q)}` },
+};
+
+function normalizeDorkTarget(target) {
+  let t = target.trim().toLowerCase();
+  t = t.replace(/^https?:\/\//, '').split('/')[0].split(':')[0];
+  if (t.startsWith('www.')) t = t.slice(4);
+  return t;
+}
+
+function buildDorkList(target, engineKey, selectedIds) {
+  const domain = normalizeDorkTarget(target);
+  const eng = DORK_ENGINES[engineKey] || DORK_ENGINES.google;
+  const ids = selectedIds && selectedIds.length ? selectedIds : Object.keys(DORK_CATALOG);
+  return ids.filter(id => DORK_CATALOG[id]).map(id => {
+    const d = DORK_CATALOG[id];
+    const query = d.query.replace(/\{target\}/g, domain);
+    return { id, name: d.name, category: d.category, query, url: eng.url(query) };
+  });
+}
+
+function dorkOptionsHtml() {
+  const byCat = {};
+  Object.entries(DORK_CATALOG).forEach(([id, d]) => {
+    if (!byCat[d.category]) byCat[d.category] = [];
+    byCat[d.category].push([id, d]);
+  });
+  let html = `
+    <div class="cmd-block">
+      <div class="cmd-label"><i data-lucide="search"></i> Moteur de recherche</div>
+      <select id="opt-engine">
+        <option value="google">Google</option>
+        <option value="bing">Bing</option>
+        <option value="duckduckgo">DuckDuckGo</option>
+      </select>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label"><i data-lucide="edit-3"></i> Dorks personnalisés</div>
+      <div class="preset-desc" style="margin-bottom:8px">
+        Une requête par ligne. Utilisez <code>{target}</code> pour le domaine (ex: <code>site:{target} ext:pdf</code>).
+      </div>
+      <textarea id="custom-dorks-input" class="cmd-textarea" rows="6" placeholder="site:{target} ext:pdf&#10;site:{target} inurl:admin&#10;intext:&quot;@{target}&quot;&#10;site:{target} filetype:sql"></textarea>
+      <div class="cmd-hint">Saisie libre : une ligne = une recherche.</div>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label"><i data-lucide="list-checks"></i> Dorks prédéfinis</div>
+      <div class="preset-desc" style="margin-bottom:10px">
+        Cochez les modèles à inclure. Liens ouverts automatiquement si l'option est activée.
+      </div>
+      <div class="preset-chips" style="margin-bottom:12px">
+        <button type="button" class="chip active" id="dork-btn-all"><i data-lucide="check-square"></i> Tout sélectionner</button>
+        <button type="button" class="chip" id="dork-btn-none"><i data-lucide="square"></i> Tout désélectionner</button>
+      </div>
+      <div id="dork-preset-list">`;
+  Object.entries(byCat).forEach(([cat, items]) => {
+    html += `<div class="dork-section-label">${cat}</div><div class="dork-grid">`;
+    items.forEach(([id, d]) => {
+      html += `
+        <label class="dork-check">
+          <input type="checkbox" class="dork-cb" data-dork="${id}" checked />
+          <span>
+            <span class="dork-check-label">${d.name}</span>
+            <div class="dork-check-desc"><code>${d.query.replace('{target}', 'example.com')}</code></div>
+          </span>
+        </label>`;
+    });
+    html += '</div>';
+  });
+  html += `
+      </div>
+    </div>
+    <div class="form-group toggle-row" style="margin-top:14px">
+      <label>Ouvrir les recherches automatiquement à la fin</label>
+      <label class="toggle"><input type="checkbox" id="opt-auto_open" checked><span class="toggle-slider"></span></label>
+    </div>`;
+  return html;
+}
+
+function bindDorkControls() {
+  const allBtn = document.getElementById('dork-btn-all');
+  const noneBtn = document.getElementById('dork-btn-none');
+  if (allBtn) {
+    allBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleAllDorks(true);
+    };
+  }
+  if (noneBtn) {
+    noneBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleAllDorks(false);
+    };
+  }
+}
+
+function toggleAllDorks(checked) {
+  const root = document.getElementById('dork-preset-list');
+  if (!root) return;
+  root.querySelectorAll('input.dork-cb').forEach(cb => {
+    cb.checked = !!checked;
+  });
+  const allBtn = document.getElementById('dork-btn-all');
+  const noneBtn = document.getElementById('dork-btn-none');
+  if (allBtn) allBtn.classList.toggle('active', !!checked);
+  if (noneBtn) noneBtn.classList.toggle('active', !checked);
+}
+
+function getSelectedDorkIds() {
+  const root = document.getElementById('dork-preset-list');
+  if (!root) return [];
+  return [...root.querySelectorAll('input.dork-cb:checked')].map(cb => cb.dataset.dork);
+}
+
+function getCustomDorkLines() {
+  const ta = document.getElementById('custom-dorks-input');
+  if (!ta) return [];
+  return ta.value.split('\n').map(l => l.trim()).filter(Boolean);
+}
+
+function hasPassiveReconQueries() {
+  return getSelectedDorkIds().length > 0 || getCustomDorkLines().length > 0;
+}
+
+function renderDorkResults(dorks, engineLabel, target) {
+  const panel = document.getElementById('dork-results');
+  if (!panel || !dorks || !dorks.length) {
+    if (panel) panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="dork-results-head">
+      <h3><i data-lucide="search"></i> ${dorks.length} dork(s) — ${esc(engineLabel || 'Google')} · ${esc(target)}</h3>
+      <div class="dork-results-actions">
+        <button type="button" class="btn-sm" onclick="openAllDorkUrls()">
+          <i data-lucide="external-link"></i> Ouvrir toutes les recherches
+        </button>
+      </div>
+    </div>
+    <div class="dork-list" id="dork-list">
+      ${dorks.map(d => `
+        <div class="dork-item">
+          <div class="dork-item-body">
+            <div class="dork-item-name">${esc(d.name)}</div>
+            <div class="dork-item-query">${esc(d.query)}</div>
+            <div class="dork-item-cat">${esc(d.category || '')}</div>
+          </div>
+          <a class="dork-open-btn" href="${esc(d.url)}" target="_blank" rel="noopener noreferrer">
+            <i data-lucide="external-link"></i> Ouvrir
+          </a>
+        </div>`).join('')}
+    </div>`;
+  window._lastDorkUrls = dorks.map(d => d.url);
+  if (window.lucide) lucide.createIcons();
+}
+
+function openAllDorkUrls(urls) {
+  const list = urls || window._lastDorkUrls || [];
+  if (!list.length) return;
+  list.forEach((url, i) => {
+    setTimeout(() => window.open(url, '_blank', 'noopener,noreferrer'), i * 400);
+  });
+  showToast(`Ouverture de ${list.length} onglet(s) de recherche… Autorisez les pop-ups si besoin.`, 'success');
+}
+
+function hideDorkResults() {
+  const panel = document.getElementById('dork-results');
+  if (panel) { panel.style.display = 'none'; panel.innerHTML = ''; }
+  window._lastDorkUrls = [];
+}
 
 // ── Génère le bloc presets pour un outil ────────────────────
 function presetBlock(tool, taId, hint, defaultKey) {
@@ -405,7 +675,23 @@ const moduleConfig = {
       <div class="form-group toggle-row">
         <label>Activer Whois</label>
         <label class="toggle"><input type="checkbox" id="opt-whois"><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="form-group toggle-row">
+        <label>Activer WhatWeb <span class="label-hint">(technologies web)</span></label>
+        <label class="toggle"><input type="checkbox" id="opt-whatweb" onchange="toggleCmd('whatweb-cmd', this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="whatweb-cmd" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="layers"></i> WhatWeb — Détection CMS, frameworks, serveur</div>
+        <div class="preset-desc">Cible : domaine ou URL (<code>https://</code> ajouté si absent). Profil d'agressivité :</div>
+        ${profileBlock('whatweb', 'whatweb_profile', 'standard')}
       </div>`
+  },
+  passive_recon: {
+    title: 'Reconnaissance passive', icon: 'search',
+    iconBg: 'rgba(20,184,166,.15)', iconColor: '#2dd4bf',
+    launchLabel: 'Générer et lancer les dorks',
+    options: () => dorkOptionsHtml(),
   },
   scan: {
     title: 'Scan de Vulnérabilités', icon: 'shield-alert',
@@ -542,6 +828,20 @@ const moduleConfig = {
       <div class="form-group">
         <label>URL du proxy ZAP <span class="label-hint">(défaut: localhost:8080)</span></label>
         <input type="text" id="opt-zap_url" value="http://localhost:8080" />
+      </div>
+
+      <div class="form-group toggle-row">
+        <label>Activer Gobuster <span class="label-hint">(pages / répertoires cachés)</span></label>
+        <label class="toggle"><input type="checkbox" id="opt-gobuster" onchange="toggleCmd('gobuster-cmd', this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div id="gobuster-cmd" class="cmd-block" style="display:none">
+        <div class="cmd-label"><i data-lucide="folder-search"></i> Gobuster — Brute-force de chemins HTTP</div>
+        <div class="preset-desc">Cible : URL complète ou domaine (<code>https://</code> par défaut).</div>
+        ${profileBlock('gobuster', 'gobuster_profile', 'standard')}
+        <div class="form-group" style="margin-top:12px">
+          <label>Extensions <span class="label-hint">(optionnel, ex: php,html,txt)</span></label>
+          <input type="text" id="opt-gobuster_extensions" placeholder="php,html,txt,bak" />
+        </div>
       </div>`
   },
 };
@@ -719,15 +1019,15 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-let currentModule = 'recon';
+let currentModule = 'passive_recon';
 let currentJobId  = null;
 let currentTarget = '';
 let pollTimer     = null;
 
 // Init
 const qm = new URLSearchParams(location.search).get('m');
-selectModule(qm && moduleConfig[qm] ? qm : 'recon',
-             document.querySelector(`[data-module="${qm || 'recon'}"]`));
+selectModule(qm && moduleConfig[qm] ? qm : 'passive_recon',
+             document.querySelector(`[data-module="${qm || 'passive_recon'}"]`));
 loadJobs();
 if (window.lucide) lucide.createIcons();
 
@@ -741,9 +1041,26 @@ function selectModule(name, el) {
   document.getElementById('form-badge').textContent = name;
   document.getElementById('module-options').innerHTML =
     typeof cfg.options === 'function' ? cfg.options() : cfg.options;
+  const targetInput = document.getElementById('target');
+  const launchTxt = document.getElementById('launch-text');
+  if (targetInput) {
+    if (name === 'passive_recon') {
+      targetInput.placeholder = 'ex: example.com ou entreprise-cible.fr';
+    } else if (name === 'exploit' && document.getElementById('opt-mode')?.value === 'john') {
+      targetInput.placeholder = 'hash brut ($1$…) ou chemin /tmp/hashes.txt';
+    } else {
+      targetInput.placeholder = 'ex: 192.168.1.1 ou example.com';
+    }
+  }
+  if (launchTxt) {
+    const label = cfg.launchLabel || 'Lancer le scan';
+    launchTxt.innerHTML = `<i data-lucide="rocket"></i> ${label}`;
+  }
+  hideDorkResults();
+  if (name === 'passive_recon') bindDorkControls();
   if (window.lucide) lucide.createIcons();
-  // Restaure l'état des pickers de wordlist présents dans le DOM reconstruit
   renderAllSlots();
+  validateTarget();
 }
 
 function collectOptions() {
@@ -765,6 +1082,11 @@ function collectOptions() {
   }
   if (currentModule === 'exploit' && mode === 'john') {
     applyWlSlot(opts, 'john_wordlist', 'wordlist_file', 'wordlist_inline', 'use_rockyou');
+  }
+  if (currentModule === 'passive_recon') {
+    opts.dorks = getSelectedDorkIds();
+    const custom = getCustomDorkLines();
+    if (custom.length) opts.custom_dorks = custom;
   }
   return opts;
 }
@@ -837,6 +1159,14 @@ function validateTarget() {
     return true;
   }
 
+  // Reconnaissance passive (dorks) : champ libre — peut être une marque, un nom, etc.
+  if (currentModule === 'passive_recon') {
+    errDiv.style.display = 'none';
+    input.classList.remove('input-invalid');
+    input.classList.add('input-valid');
+    return true;
+  }
+
   const check = isValidTarget(val);
   if (!check.valid) {
     errDiv.style.display = 'flex';
@@ -858,6 +1188,11 @@ async function launchScan(e) {
   e.preventDefault();
   const target = document.getElementById('target').value.trim();
   if (!target) return;
+
+  if (currentModule === 'passive_recon' && !hasPassiveReconQueries()) {
+    showToast('Sélectionnez au moins un dork prédéfini ou saisissez une requête personnalisée.', 'error');
+    return;
+  }
 
   // Validation visuelle (warning mais on laisse passer pour créer l'erreur côté serveur)
   const targetValid = validateTarget();
@@ -883,7 +1218,8 @@ async function launchScan(e) {
     alert('Erreur : ' + err.message);
     btn.disabled = false;
     spinner.style.display = 'none';
-    txt.innerHTML = '<i data-lucide="rocket"></i> Lancer le scan';
+    const cfg = moduleConfig[currentModule] || {};
+    txt.innerHTML = `<i data-lucide="rocket"></i> ${cfg.launchLabel || 'Lancer le scan'}`;
     if (window.lucide) lucide.createIcons();
   }
 }
@@ -891,6 +1227,7 @@ async function launchScan(e) {
 // ── Affichage progression ───────────────────────────────────
 function showProgress(jobId, module, target) {
   currentTarget = target;
+  hideDorkResults();
   const cfg = moduleConfig[module] || { title: module, icon: 'wrench', iconBg: 'rgba(255,255,255,.1)', iconColor: '#94a3b8' };
   const iconEl = document.getElementById('prog-icon');
   iconEl.innerHTML            = `<i data-lucide="${cfg.icon}" class="icon-lg"></i>`;
@@ -995,13 +1332,25 @@ async function pollJob(jobId) {
     pollTimer = null;
     document.getElementById('prog-actions').style.display = 'flex';
 
-    // Réactiver le bouton
+    if (status === 'done' && job.module === 'passive_recon') {
+      const data = job.result?.data || job.result;
+      const dorks = data?.dorks;
+      if (dorks?.length) {
+        renderDorkResults(dorks, data.engine_label, data.domain || job.target);
+        const opts = job.options || {};
+        if (opts.auto_open !== false) {
+          setTimeout(() => openAllDorkUrls(dorks.map(d => d.url)), 600);
+        }
+      }
+    }
+
     const btn = document.getElementById('btn-launch');
     const spinner = document.getElementById('launch-spinner');
     const txt = document.getElementById('launch-text');
+    const cfg = moduleConfig[currentModule] || {};
     btn.disabled = false;
     spinner.style.display = 'none';
-    txt.innerHTML = '<i data-lucide="rocket"></i> Lancer le scan';
+    txt.innerHTML = `<i data-lucide="rocket"></i> ${cfg.launchLabel || 'Lancer le scan'}`;
     if (window.lucide) lucide.createIcons();
 
     await loadJobs();
@@ -1011,6 +1360,7 @@ async function pollJob(jobId) {
 function resetProgress() {
   if (pollTimer) clearInterval(pollTimer);
   document.getElementById('progress-panel').style.display = 'none';
+  hideDorkResults();
   currentJobId = null;
 }
 
@@ -1038,12 +1388,12 @@ async function loadJobs() {
   if (window.lucide) lucide.createIcons();
 }
 
-function resumeProgress(jobId, module, target) {
+async function resumeProgress(jobId, module, target) {
   currentJobId  = jobId;
   currentModule = module;
   currentTarget = target;
   showProgress(jobId, module, target);
-  pollJob(jobId);
+  await pollJob(jobId);
 }
 
 async function genReport(jobId) {

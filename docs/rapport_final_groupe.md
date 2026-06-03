@@ -457,7 +457,7 @@ docker compose -f docker/docker-compose.yml build worker
 docker compose -f docker/docker-compose.yml logs -f worker
 
 # Lancer un scan via curl
-TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token -d 'username=admin&password=admin123' | jq -r .access_token)
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token -d 'username=admin&password=admin' | jq -r .access_token)
 curl -X POST http://localhost:8000/api/modules/launch \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \

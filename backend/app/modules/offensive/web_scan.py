@@ -7,6 +7,7 @@ Intègre :
   - SSLyze via module scan
 """
 
+import os
 import subprocess
 import shutil
 import logging
@@ -16,12 +17,25 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _web_url(target: str, options: dict | None = None) -> str:
+    opts = options or {}
+    t = target.strip()
+    if not t.startswith(("http://", "https://")):
+        scheme = opts.get("scheme", "http")
+        host = t.split("/")[0]
+        t = f"{scheme}://{host}"
+    return t.rstrip("/")
+
+
 class WebScanModule:
     def run(self, target: str, options: dict) -> dict:
         results: dict[str, Any] = {"target": target}
 
         if options.get("zap", True):
             results["zap"] = self._zap_scan(target, options)
+
+        if options.get("gobuster", False):
+            results["gobuster"] = self._gobuster(target, options)
 
         if options.get("dep_check", False):
             results["dependency_check"] = self._dependency_check(options.get("project_path", "."))
@@ -85,6 +99,77 @@ class WebScanModule:
             }
         except requests.RequestException as e:
             return {"error": f"ZAP non disponible : {e}"}
+
+    _GOBUSTER_PROFILES = {
+        "quick": {
+            "wordlist": "/usr/share/dirb/wordlists/common.txt",
+            "threads": 10,
+            "extra": "-q --no-error",
+            "desc": "Wordlist courte (dirb/common) — scan rapide",
+        },
+        "standard": {
+            "wordlist": "/usr/share/dirb/wordlists/small.txt",
+            "threads": 20,
+            "extra": "-q --no-error",
+            "desc": "Liste dirb small — équilibre vitesse/couverture",
+        },
+        "full": {
+            "wordlist": "/usr/share/dirb/wordlists/big.txt",
+            "threads": 30,
+            "extra": "-q --no-error",
+            "desc": "Liste dirb big — plus exhaustif (long)",
+        },
+    }
+
+    def _gobuster(self, target: str, options: dict) -> dict:
+        if not shutil.which("gobuster"):
+            return {"error": "gobuster non installé"}
+
+        url = _web_url(target, options)
+        profile_key = options.get("gobuster_profile", "standard")
+        profile = self._GOBUSTER_PROFILES.get(
+            profile_key, self._GOBUSTER_PROFILES["standard"]
+        )
+        wordlist = options.get("gobuster_wordlist") or profile["wordlist"]
+        threads = int(options.get("gobuster_threads") or profile["threads"])
+        extensions = (options.get("gobuster_extensions") or "").strip()
+
+        if not os.path.isfile(wordlist):
+            alt_wordlist = wordlist.replace("/usr/share/wordlists", "/usr/share/dirb/wordlists")
+            if os.path.isfile(alt_wordlist):
+                wordlist = alt_wordlist
+            else:
+                return {"error": f"Wordlist introuvable : {wordlist}"}
+
+        try:
+            cmd = [
+                "gobuster", "dir",
+                "-u", url,
+                "-w", wordlist,
+                "-t", str(threads),
+            ]
+            if extensions:
+                cmd.extend(["-x", extensions])
+            cmd.extend(profile["extra"].split())
+
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            output = (proc.stdout or "") + (proc.stderr or "")
+            found = [
+                ln.strip() for ln in output.splitlines()
+                if ln.strip() and not ln.startswith("=") and "Progress" not in ln
+            ]
+            return {
+                "command": " ".join(cmd),
+                "url": url,
+                "profile": profile_key,
+                "wordlist": wordlist,
+                "paths_found": len(found),
+                "output": output.strip() or "(aucun chemin trouvé)",
+            }
+        except subprocess.TimeoutExpired:
+            return {"error": "Timeout gobuster (600s)"}
+        except Exception as e:
+            return {"error": str(e)}
 
     def _dependency_check(self, project_path: str) -> dict:
         dc_bin = shutil.which("dependency-check") or shutil.which("dependency-check.sh")

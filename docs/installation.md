@@ -73,17 +73,17 @@ Volumes Docker persistés :
 
 ### 5. Créer le premier administrateur
 
-> **Note** : si tu as démarré la stack avec `scripts/start.sh` ou `scripts/start.ps1`, le compte admin est créé automatiquement — tu peux sauter cette étape et te connecter directement avec `admin` / `admin123`.
+> **Note** : si tu as démarré la stack avec `scripts/start.sh` ou `scripts/start.ps1`, le compte admin est créé automatiquement — tu peux sauter cette étape et te connecter directement avec `admin` / `admin`.
 
 Sinon, crée-le manuellement :
 
 ```bash
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","email":"admin@pentestbox.com","password":"admin123","role":"admin"}'
+  -d '{"username":"admin","email":"admin@pentestbox.com","password":"admin","role":"admin"}'
 ```
 
-Puis connecte-toi sur http://localhost:3000/login avec `admin` / `admin123`.
+Puis connecte-toi sur http://localhost:3000/login avec `admin` / `admin`.
 
 ⚠️ **En production**, change immédiatement ce mot de passe (créé un autre compte, supprime celui-là, ou update en DB).
 

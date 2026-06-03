@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # Hosts
-    ALLOWED_HOSTS: List[str] = ["*"]
+    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1", "api", "api:8000"]
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost",
         "http://localhost:8000",

@@ -280,7 +280,7 @@ body {
 /* ── Quick launch ──────────────────────────────────── */
 .quick-launch {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
   padding: 16px 20px 20px;
 }
@@ -428,7 +428,11 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: visible;
+}
+#module-options {
+  max-height: none;
+  overflow: visible;
 }
 .module-badge {
   background: rgba(239,68,68,.15); color: #fca5a5;

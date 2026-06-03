@@ -9,6 +9,7 @@ Intègre :
 
 import subprocess
 import shutil
+import socket
 import logging
 from typing import Any
 
@@ -88,7 +89,7 @@ class ScanModule:
                 "command": " ".join(cmd),
                 "profile": profile,
                 "output": proc.stdout,
-                "stderr": proc.stderr,
+                "stderr": self._clean_stderr(proc.stderr),
             }
         except subprocess.TimeoutExpired:
             return {"error": f"Timeout nikto (> {to // 60} min, profil '{profile}'). "
@@ -110,6 +111,77 @@ class ScanModule:
                      "--fallback", "--ems", "--early_data"],
     }
 
+    _SSLYZE_NO_TLS_HINT = (
+        "La cible n'accepte pas de connexion TLS sur ce port. "
+        "SSLyze nécessite un service HTTPS/TLS actif. "
+        "Cibles de test recommandées : badssl.com, expired.badssl.com, "
+        "self-signed.badssl.com, github.com, ou n'importe quel site HTTPS."
+    )
+
+    # Motifs de bruit à filtrer de stderr (warnings Python sans gravité).
+    _STDERR_NOISE_MARKERS = (
+        "deprecationwarning",
+        "pendingdeprecationwarning",
+        "userwarning",
+        "futurewarning",
+        "pkg_resources is deprecated",
+        "cryptographydeprecationwarning",
+        "failed to check for updates",  # Nikto : check de version, anodin
+    )
+
+    @classmethod
+    def _clean_stderr(cls, stderr: str | None) -> str:
+        """Retire les warnings Python et autres lignes de bruit qui
+        font apparaître à tort 'Erreurs / Stderr' dans le rapport."""
+        if not stderr:
+            return ""
+        kept: list[str] = []
+        skip_next_indented = False
+        for line in stderr.splitlines():
+            low = line.lower()
+            if any(m in low for m in cls._STDERR_NOISE_MARKERS):
+                skip_next_indented = True
+                continue
+            # Lignes "self._raw_oid = ..." ou continuations indentées d'un warning
+            if skip_next_indented and (line.startswith((" ", "\t")) or not line.strip()):
+                continue
+            skip_next_indented = False
+            kept.append(line)
+        return "\n".join(kept).strip()
+
+    @staticmethod
+    def _tls_reachable(host: str, port: int, timeout: float = 5.0) -> tuple[bool, str]:
+        """Vérifie qu'un port TCP est ouvert (précondition à SSLyze).
+        Essaie chaque adresse résolue (IPv4 puis IPv6) — utile dans Docker
+        où le réseau IPv6 n'est souvent pas routé."""
+        try:
+            infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        except socket.gaierror:
+            return False, f"DNS introuvable : impossible de résoudre {host}."
+
+        # IPv4 d'abord, puis IPv6 (fallback)
+        infos.sort(key=lambda i: 0 if i[0] == socket.AF_INET else 1)
+        last_err: Exception | None = None
+        for family, socktype, proto, _, sockaddr in infos:
+            sock = socket.socket(family, socktype, proto)
+            sock.settimeout(timeout)
+            try:
+                sock.connect(sockaddr)
+                sock.close()
+                return True, ""
+            except (TimeoutError, socket.timeout) as e:
+                last_err = e
+            except OSError as e:
+                last_err = e
+            finally:
+                sock.close()
+
+        if isinstance(last_err, (TimeoutError, socket.timeout)):
+            return False, f"Timeout TCP sur {host}:{port} — port filtré ou hôte inaccessible."
+        if isinstance(last_err, ConnectionRefusedError):
+            return False, f"Connexion refusée sur {host}:{port} — aucun service n'écoute."
+        return False, f"Connexion impossible vers {host}:{port} : {last_err}"
+
     def _sslyze(self, target: str, options: dict | None = None) -> dict:
         """Utilise le binaire sslyze (présent dans l'image Kali) pour produire
         le même rendu qu'en ligne de commande."""
@@ -117,21 +189,62 @@ class ScanModule:
         profile = opts.get("sslyze_profile", "standard")
         args = self._SSLYZE_PROFILES.get(profile, self._SSLYZE_PROFILES["standard"])
 
+        # Parse host:port (port 443 par défaut)
+        host = target.split("://", 1)[-1].split("/")[0]
+        if ":" in host:
+            host_only, port_str = host.rsplit(":", 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                host_only, port = host, 443
+        else:
+            host_only, port = host, 443
+        endpoint = f"{host_only}:{port}"
+
+        # Pré-check connectivité TCP : évite de lancer sslyze sur une cible
+        # sans service TLS (cas typique de scanme.nmap.org).
+        reachable, reason = self._tls_reachable(host_only, port)
+        if not reachable:
+            return {
+                "command": f"sslyze {' '.join(args)} {endpoint}",
+                "profile": profile,
+                "error": f"{reason} {self._SSLYZE_NO_TLS_HINT}",
+            }
+
         if shutil.which("sslyze"):
             try:
-                host = target.split("://", 1)[-1].split("/")[0]
-                if ":" not in host:
-                    host = f"{host}:443"
-                cmd = ["sslyze"] + args + [host]
+                cmd = ["sslyze"] + args + [endpoint]
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+                # Détecter les erreurs de connexion remontées par sslyze
+                # (port ouvert mais ne parle pas TLS, handshake rejeté, etc.).
+                out_lower = (proc.stdout or "").lower()
+                tls_error_markers = [
+                    "rejected the connection",
+                    "server rejected",
+                    "tls handshake",
+                    "ssl handshake",
+                    "could not connect",
+                    "connection error",
+                ]
+                if any(m in out_lower for m in tls_error_markers):
+                    return {
+                        "command": " ".join(cmd),
+                        "profile": profile,
+                        "output": proc.stdout,
+                        "stderr": self._clean_stderr(proc.stderr),
+                        "error": (
+                            f"SSLyze a pu joindre {endpoint} mais le handshake TLS a échoué. "
+                            f"{self._SSLYZE_NO_TLS_HINT}"
+                        ),
+                    }
                 return {
                     "command": " ".join(cmd),
                     "profile": profile,
                     "output": proc.stdout,
-                    "stderr": proc.stderr,
+                    "stderr": self._clean_stderr(proc.stderr),
                 }
             except subprocess.TimeoutExpired:
-                return {"error": "Timeout sslyze"}
+                return {"error": "Timeout sslyze (> 3 min). Cible lente ou filtrée."}
             except Exception as e:
                 return {"error": str(e)}
 

@@ -6,7 +6,7 @@
 #
 # Démarrage : ./scripts/start.sh   (Linux/macOS)
 #             .\scripts\start.ps1  (Windows)
-# Le compte admin (admin / admin123) est créé automatiquement par les scripts.
+# Le compte admin (admin / admin) est créé automatiquement par les scripts.
 # ============================================================
 
 services:

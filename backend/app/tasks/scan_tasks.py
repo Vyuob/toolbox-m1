@@ -53,13 +53,54 @@ def run_recon(self, target: str, options: dict) -> dict:
         p(68, "Whois désactivé (option non sélectionnée).")
         whois = ""
 
-    p(80, "Consolidation des données DNS, Nmap et Whois...")
-    p(85, "Analyse des services exposés et des vecteurs d'attaque potentiels...")
-    p(90, "Génération du résumé de reconnaissance...")
-    result = {"target": target, "dns": dns, "nmap": nmap, "whois": whois}
+    whatweb = {}
+    if options.get("whatweb"):
+        p(78, "WhatWeb : fingerprinting des technologies web (CMS, frameworks, serveur)...")
+        p(82, "WhatWeb : analyse des en-têtes HTTP, cookies et balises meta...")
+        whatweb = module._whatweb(target, options)
+        p(86, "WhatWeb terminé — technologies identifiées.")
+    else:
+        p(76, "WhatWeb désactivé (option non sélectionnée).")
+
+    p(88, "Consolidation des données DNS, Nmap, Whois et WhatWeb...")
+    p(92, "Analyse des services exposés et des vecteurs d'attaque potentiels...")
+    p(96, "Génération du résumé de reconnaissance...")
+    result = {"target": target, "dns": dns, "nmap": nmap, "whois": whois, "whatweb": whatweb}
 
     p(95, "Finalisation et mise en forme des résultats...")
     p(100, "Reconnaissance terminée avec succès.")
+    return {
+        "status": "done",
+        "result": result,
+        "logs": logs,
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ── Reconnaissance passive (OSINT / Dorking) ───────────────────────────────
+
+@celery_app.task(bind=True, name="tasks.run_passive_recon")
+def run_passive_recon(self, target: str, options: dict) -> dict:
+    logs = []
+    p = lambda pct, msg: _progress(self, pct, msg, logs)
+
+    p(5,  f"Initialisation OSINT — Reconnaissance passive sur {target}...")
+    p(15, "Normalisation du domaine cible...")
+    p(25, "Sélection des Google Dorks et du moteur de recherche...")
+
+    from app.modules.offensive.passive_recon import PassiveReconModule
+    module = PassiveReconModule()
+
+    p(45, "Génération des requêtes de dorking prêtes à lancer...")
+    result = module.run(target, options)
+    count = result.get("count", 0)
+    engine = result.get("engine_label", "Google")
+
+    p(70, f"{count} dork(s) généré(s) pour {engine}.")
+    p(85, "Construction des URLs de recherche...")
+    p(95, "Reconnaissance passive terminée — liens prêts à ouvrir.")
+    p(100, f"OSINT terminé : {count} recherche(s) disponible(s).")
+
     return {
         "status": "done",
         "result": result,
@@ -260,9 +301,19 @@ def run_web_scan(self, target: str, options: dict) -> dict:
         p(30, "ZAP désactivé.")
         zap_result = {}
 
+    gobuster_result = {}
+    if options.get("gobuster"):
+        p(78, "Gobuster : énumération de répertoires et fichiers cachés...")
+        p(82, "Gobuster : brute-force des chemins HTTP (wordlist)...")
+        gobuster_result = module._gobuster(target, options)
+        found = gobuster_result.get("paths_found", 0) if isinstance(gobuster_result, dict) else 0
+        p(86, f"Gobuster terminé — {found} entrée(s) dans la sortie.")
+    else:
+        p(76, "Gobuster désactivé (option non sélectionnée).")
+
     dep_result = {}
     if options.get("dep_check"):
-        p(78, "OWASP Dependency-Check : analyse des dépendances du projet...")
+        p(88, "OWASP Dependency-Check : analyse des dépendances du projet...")
         p(82, "Dependency-Check : téléchargement de la base CVE NVD...")
         p(86, "Dependency-Check : vérification des bibliothèques tierces (npm, pip, maven)...")
         p(90, "Dependency-Check : détection des CVE dans les dépendances...")
@@ -274,7 +325,7 @@ def run_web_scan(self, target: str, options: dict) -> dict:
     p(88, "Corrélation et classification des vulnérabilités web...")
     p(93, "Génération du plan de remédiation OWASP Top 10...")
     p(96, "Calcul du score de risque global de l'application...")
-    result = {"target": target, "zap": zap_result, "dependency_check": dep_result}
+    result = {"target": target, "zap": zap_result, "gobuster": gobuster_result, "dependency_check": dep_result}
 
     p(98, "Mise en forme du rapport Web/API...")
     p(100, "Scan Web/API terminé.")

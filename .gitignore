@@ -8,6 +8,7 @@
 *.pem
 *.crt
 *.p12
+cookies.txt
 
 # ---- Python ----
 __pycache__/

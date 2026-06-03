@@ -27,6 +27,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
       # Pentest
       nmap nikto sqlmap hydra john wordlists \
+      whatweb gobuster dirb dirbuster \
       whois dnsutils curl \
       metasploit-framework \
       # Build / runtime Python
@@ -46,9 +47,12 @@ RUN if [ -f /usr/share/wordlists/rockyou.txt.gz ]; then \
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip
 
+ENV PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=10
+
 # Dépendances Python via le requirements.txt exporté par poetry
 COPY --from=builder /requirements.txt /tmp/requirements.txt
-RUN /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir --retries 10 --timeout 120 -r /tmp/requirements.txt
 
 COPY backend/ .
 COPY frontend/ ./frontend/
