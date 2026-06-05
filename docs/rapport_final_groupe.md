@@ -279,10 +279,27 @@ Le frontend permet de **cocher / décocher** chaque dork puis d'ouvrir tous les 
 
 ### 5.2 Défensifs
 
-- **SIEM** : indexation automatique des résultats de scans + alertes Snort dans `pentest-logs-*`
-- **IDS** : Snort 3 avec règles personnalisées [siem/snort/local.rules](../siem/snort/local.rules) (scan Nmap, brute-force SSH/HTTP, SQLi, XSS, LFI)
-- **Response** : blocage iptables DROP, isolation host (extensible)
+- **SIEM** : indexation automatique des résultats de scans + alertes Snort dans `pentest-logs-*` / `pentest-alerts-*`
+- **IDS** : Snort 3 avec 9 règles personnalisées [siem/snort/local.rules](../siem/snort/local.rules) : scan Nmap SYN, brute-force SSH (5/60s), brute-force HTTP Basic, SQLi (`UNION SELECT`), XSS, Directory Traversal, signature Nikto, signature SQLmap, Log4Shell (CVE-2021-44228)
+- **Response active** ([backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py)) — voir §5.4 et §8.4
 - **Forensic** (bonus) : ClamAV + VirusTotal API v3
+
+### 5.4 Module Response — pare-feu & remédiation
+
+Le module `ResponseModule` expose 4 actions de remédiation, journalisées systématiquement dans le SIEM :
+
+| Action | Méthode | Implémentation |
+|--------|---------|----------------|
+| **Blocage IP** | `block_ip(ip, reason)` | `iptables -A INPUT -s <ip> -j DROP` dans le conteneur worker Kali |
+| **Déblocage IP** | `unblock_ip(ip)` | `iptables -D INPUT -s <ip> -j DROP` |
+| **Isolation hôte** | `isolate_host(ip)` | Hook prévu pour intégration hyperviseur (vSphere/Proxmox/AWS Security Group) |
+| **Alerte SIEM** | `send_alert(message, severity)` | Indexation immédiate dans Elasticsearch (`response_action` / `alert`) |
+
+**Mode dégradé** : si `iptables` n'est pas disponible (cas d'un dev local Windows pur sans namespace réseau privilégié), `block_ip` retourne `{"status": "simulated"}` au lieu de planter. L'action est tout de même journalisée dans le SIEM pour traçabilité. Le worker Kali, lui, dispose de `iptables` nativement.
+
+**Journalisation systématique** : chaque appel `block_ip`/`isolate_host`/`send_alert` est indexé dans Elasticsearch avant l'action elle-même → traçabilité même si la commande système échoue.
+
+**État actuel** : le module est fonctionnel et invocable depuis le worker Celery ou un script admin. L'exposition API REST (`POST /api/defensive/response/block-ip`) est en backlog pour automatiser la chaîne complète (cf. §10.3).
 
 ### 5.3 Upload de wordlists (spécifique Hydra / John)
 
@@ -540,6 +557,71 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 - Événements récents par catégorie
 - Graphiques : barres + camemberts + timeline
 
+### 8.4 Pipeline Détection → Réponse (SOAR léger)
+
+Chaînage des composants défensifs pour réagir automatiquement à une attaque :
+
+```
+       ATTAQUANT
+           │
+           ▼  (paquet réseau / requête HTTP)
+   ┌───────────────┐
+   │   Snort 3     │  ──── alerte (regle local.rules sid:90000xx)
+   └───────────────┘                              │
+                                                  ▼
+                                          ┌──────────────┐
+                                          │   Logstash   │
+                                          └──────────────┘
+                                                  │
+                                                  ▼
+                                       ┌──────────────────┐
+                                       │  Elasticsearch   │
+                                       │ pentest-alerts-* │
+                                       └──────────────────┘
+                                                  │
+                                  ┌───────────────┴───────────────┐
+                                  ▼                               ▼
+                          ┌──────────────┐              ┌────────────────────┐
+                          │  /siem (UI)  │              │  ResponseModule    │
+                          │  Analyst SOC │              │  block_ip(...)     │
+                          └──────────────┘              │  isolate_host(...) │
+                                  │                     │  send_alert(...)   │
+                                  │ (decision)          └────────────────────┘
+                                  └──────► triggers ────────────┘
+                                                                 │
+                                                                 ▼
+                                                       ┌──────────────────┐
+                                                       │ iptables DROP    │
+                                                       │ + log audit_logs │
+                                                       │ + index SIEM     │
+                                                       └──────────────────┘
+```
+
+**Exemple concret** :
+
+1. Attaquant lance `sqlmap -u http://cible.local/page?id=1` depuis 192.168.1.50
+2. Snort détecte la signature `User-Agent: sqlmap` → règle sid 9000008 → alerte
+3. Logstash ingère l'alerte → indexée dans `pentest-alerts-*`
+4. Le dashboard `/siem` affiche la nouvelle alerte (refresh 10s)
+5. L'analyste SOC appelle (via console ou futur endpoint REST) :
+   `ResponseModule().block_ip("192.168.1.50", reason="sqlmap_detected")`
+6. **3 effets en cascade** :
+   - Indexation préalable dans Elasticsearch (`response_action`)
+   - Exécution de `iptables -A INPUT -s 192.168.1.50 -j DROP`
+   - Trace dans `audit_logs` PostgreSQL
+7. L'attaquant ne peut plus joindre la cible.
+
+**Composants concrets de la chaîne** :
+
+| Maillon | Implémentation | Fichier |
+|---------|----------------|---------|
+| Détection | Snort 3 + 9 règles | [siem/snort/local.rules](../siem/snort/local.rules) |
+| Transport | Logstash pipeline | [siem/elk/logstash.conf](../siem/elk/logstash.conf) |
+| Stockage | Elasticsearch 8.13 | conteneur `pentest_elasticsearch` |
+| Visualisation | Kibana + page `/siem` | [frontend/templates/siem.html](../frontend/templates/siem.html) |
+| Action firewall | `iptables` via `ResponseModule` | [backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py) |
+| Traçabilité | `AuditLog` + index SIEM | [backend/app/models/scan.py](../backend/app/models/scan.py) |
+
 ---
 
 ## 9. Problèmes rencontrés et solutions (REX)
@@ -578,6 +660,7 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 - `msfrpcd` n'est pas démarré automatiquement — Metasploit nécessite une configuration manuelle
 - ZAP doit être lancé séparément (non intégré au compose pour limiter la taille d'image)
 - En dev local, le certificat Caddy nécessite un import manuel de la CA racine (one-shot par poste) — en prod cette étape disparaît (Let's Encrypt)
+- **Réponse active semi-automatisée** : la chaîne Snort → SIEM est entièrement automatique, mais le déclenchement de `ResponseModule.block_ip()` reste invoqué manuellement par l'analyste (depuis console ou via futur endpoint REST). Pas encore de SOAR end-to-end (cf. §10.3)
 
 ### 10.3 Perspectives d'évolution
 
@@ -586,6 +669,7 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 | Sidecar `msfrpcd` préconfiguré + ZAP daemon | Automatisation complète Metasploit + web_scan |
 | Intégration SecLists | 1000+ wordlists prêtes à l'emploi |
 | Push d'image sur registry (CI déjà active, build prêt) | Distribution versionnée des images Docker |
+| **Endpoint REST `POST /api/defensive/response/block-ip`** | Boucler la chaîne SOAR : alerte Snort → règle de corrélation Elasticsearch → trigger HTTP → blocage iptables automatique |
 | Module IA/ML | Classification automatique de vulnérabilités, triage de criticité |
 | Module SSO (OIDC) | Intégration dans un écosystème d'entreprise |
 | Mode dark scan | Scans en arrière-plan scheduled (cron interne) |
