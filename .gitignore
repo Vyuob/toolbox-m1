@@ -9,6 +9,7 @@
 *.crt
 *.p12
 cookies.txt
+docker/caddy/caddy-root-ca.crt
 
 # ---- Python ----
 __pycache__/

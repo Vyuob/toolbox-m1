@@ -148,6 +148,8 @@ ELK (Elasticsearch + Logstash + Kibana)   MinIO (rapports S3)   Snort 3 (IDS)
 | IDS | Snort 3 | Signatures ouvertes, règles locales personnalisables |
 | Worker | Kali Rolling (Docker officiel) | Tous les outils offensifs pré-packagés par Offensive Security |
 | Reporting | ReportLab 4 | Mise en page professionnelle, preformatted pour CLI brut |
+| Reverse proxy TLS | Caddy 2 (`caddy:2-alpine`) | HTTPS auto via CA interne, config 3 lignes, basculement Let's Encrypt en 1 ligne pour la prod |
+| CI/CD | GitHub Actions + GitLab CI (parallèle) | Lint → tests pytest avec PG/Redis → build Docker, à chaque push |
 | Containers | Docker Compose v2 | Lancement en une commande |
 
 ### 4.3 Flux d'authentification
@@ -193,7 +195,41 @@ Composants clés du frontend :
 - **Modale wordlist** pour Hydra + John : 3 boutons (fichier / manuelle / rockyou.txt)
 - **Polling Celery** (3 s) pour la progression temps réel avec barre et logs
 
-### 4.6 Rapport PDF
+### 4.6 CI/CD — pipelines automatisés
+
+Deux pipelines en parallèle, déclenchés à chaque `git push` et chaque pull/merge request :
+
+| Plateforme | Fichier | Statut |
+|-----------|---------|--------|
+| **GitHub Actions** | [.github/workflows/ci.yml](../.github/workflows/ci.yml) | Actif (repo principal sur GitHub) |
+| **GitLab CI** | [.gitlab-ci.yml](../.gitlab-ci.yml) | Présent (compatibilité — push miroir GitLab via [scripts/push_gitlab.sh](../scripts/push_gitlab.sh)) |
+
+Les deux pipelines exécutent **les mêmes trois étapes** :
+
+```
+┌───────┐    ┌─────────────────────┐    ┌──────────────────────┐
+│ lint  │ →  │ test                │ →  │ build Docker         │
+│ ruff  │    │ pytest + PG + Redis │    │ api + worker (Kali)  │
+└───────┘    └─────────────────────┘    └──────────────────────┘
+```
+
+**Stage 1 — Lint (ruff)** : analyse statique du code Python, en mode `--output-format=github` pour annoter directement les pull requests sur GitHub.
+
+**Stage 2 — Tests** : pytest avec services Postgres 16 et Redis 7 en parallèle (équivalent à la stack `docker-compose` minimale). Variables d'environnement injectées :
+
+```yaml
+env:
+  DATABASE_URL: postgresql://pentest:pentest@localhost:5432/pentestdb
+  REDIS_URL: redis://localhost:6379/0
+  SECRET_KEY: ci-test-secret-key-not-used-in-prod
+  FERNET_KEY: M0F5T3JuZXRLZXlGb3JDSVRlc3RPbmx5MzJiPT0=
+```
+
+**Stage 3 — Build Docker** : build des deux images (`docker/Dockerfile` pour api/web, `docker/Dockerfile.celery` pour le worker Kali) avec cache GitHub Actions (`type=gha`) pour accélérer les builds suivants. Pas de push registry tant que le sprint 8 n'est pas validé (perspective).
+
+**Justification GitHub Actions + GitLab CI** : le cahier des charges mentionne explicitement « CI/CD (GitLab) ». Le repo principal étant hébergé sur GitHub, GitHub Actions est le pipeline actif. Le `.gitlab-ci.yml` est conservé pour rester conforme à la lettre du cahier et permettre un futur mirroring sur GitLab sans réécriture.
+
+### 4.7 Rapport PDF
 
 Le générateur [app/reporting/generator.py](../backend/app/reporting/generator.py) produit un PDF en 4 pages type :
 
@@ -282,7 +318,83 @@ Nouvel endpoint `POST /api/modules/wordlist` (multipart). Fichier stocké dans u
 ### 7.2 Chiffrement
 
 - **Fernet (AES-128)** pour les secrets stockés (ex. futures clés d'API externes)
-- HTTPS : à activer via reverse proxy en production (Nginx/Traefik/Caddy)
+- **HTTPS via reverse proxy Caddy 2** (image officielle `caddy:2-alpine`) — voir §7.6
+
+### 7.6 HTTPS avec Caddy (reverse proxy)
+
+**Choix** : Caddy plutôt que Nginx ou Traefik, pour trois raisons :
+
+1. **Configuration minimaliste** : 3 lignes de Caddyfile vs ~30 lignes de Nginx pour le même résultat ([docker/caddy/Caddyfile](../docker/caddy/Caddyfile))
+2. **Gestion TLS automatique** : Caddy embarque sa propre CA interne (`tls internal`) qui génère et renouvelle les certificats sans intervention. En production, basculer sur Let's Encrypt = remplacer `internal` par le domaine
+3. **Surface d'erreur réduite** : pas de génération manuelle de cert OpenSSL, pas de permissions à gérer
+
+**Architecture du proxy** :
+
+```
+Navigateur ── 443 (HTTPS) ── Caddy ── (réseau Docker interne) ── web:3000 (HTTP)
+              80 (HTTP)  ── Caddy ── 301 redirect → 443
+```
+
+**Caddyfile** (essentiel) :
+
+```caddy
+:443 {
+    tls internal
+    reverse_proxy web:3000 {
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+    }
+    encode gzip
+}
+
+:80 {
+    redir https://{host}{uri} permanent
+}
+```
+
+**Service Docker Compose** :
+
+```yaml
+caddy:
+  image: caddy:2-alpine
+  container_name: pentest_caddy
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    - caddy_data:/data       # stocke la CA + les certs générés
+    - caddy_config:/config
+  depends_on:
+    - web
+```
+
+**Confiance du navigateur (dev local)** : Caddy crée une CA racine auto-signée dans `caddy_data:/data/caddy/pki/authorities/local/root.crt`. Pour éviter le warning navigateur, on importe cette racine dans le trust store du système une fois :
+
+```powershell
+# Windows
+docker cp pentest_caddy:/data/caddy/pki/authorities/local/root.crt .
+certutil -user -addstore "ROOT" root.crt
+```
+
+```bash
+# Linux
+docker cp pentest_caddy:/data/caddy/pki/authorities/local/root.crt /tmp/
+sudo cp /tmp/root.crt /usr/local/share/ca-certificates/caddy-local.crt
+sudo update-ca-certificates
+```
+
+Après cet import, `https://localhost` affiche un cadenas vert classique.
+
+**En production** : un seul changement dans le Caddyfile pour passer en Let's Encrypt :
+
+```caddy
+mondomaine.fr {     # remplacer :443 par le vrai domaine
+    reverse_proxy web:3000
+}
+```
+
+Caddy obtient et renouvelle automatiquement le certificat via ACME (HTTP-01 ou TLS-ALPN-01).
 
 ### 7.3 Audit et journalisation
 
@@ -355,13 +467,14 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 - [x] Interface utilisable par un analyste sans code (profils par chips, upload fichiers)
 - [x] Reporting PDF standardisé, charte professionnelle, sortie CLI lisible
 - [x] Intégration Docker Compose simple : `./scripts/start.sh`
-- [x] Sécurisation : JWT + cookie HttpOnly + RBAC + Fernet + audit logs
+- [x] Sécurisation : JWT + cookie HttpOnly + RBAC + Fernet + audit logs + **HTTPS** (Caddy reverse proxy)
+- [x] **CI/CD** : GitHub Actions + GitLab CI (lint, tests, build Docker) à chaque push
 
 ### 10.2 Limites actuelles
 
 - `msfrpcd` n'est pas démarré automatiquement — Metasploit nécessite une configuration manuelle
 - ZAP doit être lancé séparément (non intégré au compose pour limiter la taille d'image)
-- Pas encore de HTTPS automatique (reverse proxy à configurer en prod)
+- En dev local, le certificat Caddy nécessite un import manuel de la CA racine (one-shot par poste) — en prod cette étape disparaît (Let's Encrypt)
 
 ### 10.3 Perspectives d'évolution
 
@@ -369,7 +482,7 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 |-----------|--------|
 | Sidecar `msfrpcd` préconfiguré + ZAP daemon | Automatisation complète Metasploit + web_scan |
 | Intégration SecLists | 1000+ wordlists prêtes à l'emploi |
-| CI/CD GitLab | Tests auto + push d'image sur registry |
+| Push d'image sur registry (CI déjà active, build prêt) | Distribution versionnée des images Docker |
 | Module IA/ML | Classification automatique de vulnérabilités, triage de criticité |
 | Module SSO (OIDC) | Intégration dans un écosystème d'entreprise |
 | Mode dark scan | Scans en arrière-plan scheduled (cron interne) |
@@ -397,7 +510,8 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 | Reporting automatisé exportable | ReportLab PDF + MinIO |
 | Interface sans compétence dev web | Chips + formulaires + modale |
 | Architecture modulaire extensible | Un fichier par module, une task Celery par module |
-| Sécurisation de l'outil | §7 |
+| Sécurisation de l'outil | §7 (auth, RBAC, Fernet, audit logs, HTTPS via Caddy) |
+| Conteneurisation + CI/CD GitLab | Docker Compose v2 + .gitlab-ci.yml + .github/workflows/ci.yml |
 | Module forensique bonus | ClamAV + VirusTotal |
 
 ### 11.3 Arborescence du dépôt
@@ -424,7 +538,10 @@ projet/
 ├── docker/
 │   ├── Dockerfile              ← image api + web
 │   ├── Dockerfile.celery       ← multi-stage, Kali Rolling
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   └── caddy/Caddyfile         ← reverse proxy HTTPS
+├── .github/workflows/ci.yml   ← pipeline CI GitHub Actions
+├── .gitlab-ci.yml             ← pipeline CI GitLab (miroir)
 ├── siem/
 │   └── elk/                    ← logstash.conf, elasticsearch.yml
 │   └── snort/                  ← local.rules, snort.conf

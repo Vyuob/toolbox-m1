@@ -54,6 +54,23 @@ services:
     networks:
       - pentest_net
 
+  # ── Caddy : reverse proxy HTTPS (cert auto-signé via CA interne) ──
+  caddy:
+    image: caddy:2-alpine
+    container_name: pentest_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    networks:
+      - pentest_net
+
   # ── Celery Worker ─────────────────────────────────────────────
   worker:
     build:
@@ -166,6 +183,8 @@ volumes:
   es_data:
   reports_data:
   wordlists_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   pentest_net:
