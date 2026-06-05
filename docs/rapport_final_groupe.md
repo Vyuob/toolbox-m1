@@ -279,9 +279,9 @@ Le frontend permet de **cocher / décocher** chaque dork puis d'ouvrir tous les 
 
 ### 5.2 Défensifs
 
-- **SIEM** : indexation automatique des résultats de scans + alertes Snort dans `pentest-logs-*` / `pentest-alerts-*`
-- **IDS** : Snort 3 avec 9 règles personnalisées [siem/snort/local.rules](../siem/snort/local.rules) : scan Nmap SYN, brute-force SSH (5/60s), brute-force HTTP Basic, SQLi (`UNION SELECT`), XSS, Directory Traversal, signature Nikto, signature SQLmap, Log4Shell (CVE-2021-44228)
-- **Response active** ([backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py)) — voir §5.4 et §8.4
+- **SIEM ELK** *(déployé)* : Elasticsearch + Logstash + Kibana opérationnels, indexation automatique des résultats de scans dans `pentest-logs-*`. Pipeline Logstash [siem/elk/logstash.conf](../siem/elk/logstash.conf) prêt à parser des alertes Snort (input `file` sur `/var/log/snort/alert` + filtre grok dédié).
+- **IDS Snort 3** *(règles préparées, conteneur non déployé)* : 9 règles personnalisées écrites dans [siem/snort/local.rules](../siem/snort/local.rules) : scan Nmap SYN, brute-force SSH (5/60s), brute-force HTTP Basic, SQLi (`UNION SELECT`), XSS, Directory Traversal, signature Nikto, signature SQLmap, Log4Shell (CVE-2021-44228). Le conteneur Snort lui-même n'est **pas** dans `docker-compose.yml` actuel — déploiement repoussé pour contourner les contraintes de mode promiscuous sous Docker Desktop Windows/WSL2 (cf. §10.2).
+- **Response active** *(module fonctionnel, déclenchement manuel)* ([backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py)) — voir §5.4 et §8.4
 - **Forensic** (bonus) : ClamAV + VirusTotal API v3
 
 ### 5.4 Module Response — pare-feu & remédiation
@@ -533,20 +533,32 @@ Aucun secret en clair dans le code source, le repo ou les logs (validation manue
 
 ### 8.1 Pipeline ELK
 
+État actuel — ce qui tourne réellement et ce qui est préparé pour la suite :
+
 ```
-Résultat de scan (ScanModule) ──► index Elasticsearch pentest-logs-*
-Alertes Snort (/var/log/snort/alert) ──► Logstash ──► pentest-alerts-*
-Kibana (port 5601) ou page /siem (Chart.js)
+[Déployé et fonctionnel]
+Résultat de scan (ScanModule) ──► index Elasticsearch pentest-logs-* ──► Kibana / page /siem
+Actions ResponseModule (block_ip, alert) ──► index pentest-logs-*
+
+[Préparé, en attente du conteneur Snort]
+Alertes Snort (/var/log/snort/alert) ──► Logstash (config prête) ──► Elasticsearch
 ```
 
-### 8.2 Règles Snort personnalisées
+Pourquoi Snort n'est pas déployé : son mode IDS nécessite des privilèges réseau (`cap_add: NET_ADMIN`, accès en mode promiscuous à l'interface) qui demandent une configuration spécifique sous Docker Desktop Windows + WSL2 (l'environnement principal de l'équipe). Le déploiement a été repoussé pour ne pas bloquer le reste du projet — les **règles, la config Logstash et le pipeline d'ingestion sont prêts**, il ne reste qu'à ajouter le service au compose en environnement Linux ou via une VM Kali dédiée.
 
-Fichier [siem/snort/local.rules](../siem/snort/local.rules) :
+### 8.2 Règles Snort personnalisées (préparées)
 
-- Scan Nmap SYN sur plusieurs ports
-- Brute-force SSH (5 tentatives/10 s)
-- Brute-force HTTP Basic Auth
-- Signatures SQLi, XSS, Directory Traversal
+Fichier [siem/snort/local.rules](../siem/snort/local.rules) — 9 règles écrites, prêtes à charger dès que le conteneur Snort sera déployé :
+
+- Scan Nmap SYN sur plusieurs ports (sid 9000001)
+- Brute-force SSH (5 tentatives / 60 s — sid 9000002)
+- Brute-force HTTP Basic Auth (10 tentatives / 30 s — sid 9000003)
+- SQL Injection `UNION SELECT` (sid 9000004)
+- XSS `<script>` (sid 9000005)
+- Directory Traversal `../` (sid 9000006)
+- Signature User-Agent Nikto (sid 9000007)
+- Signature User-Agent sqlmap (sid 9000008)
+- Log4Shell `${jndi:` (CVE-2021-44228 — sid 9000009)
 
 ### 8.3 Dashboard `/siem`
 
@@ -559,7 +571,9 @@ Page Jinja2 + Chart.js qui interroge `/api/defensive/overview` (agrégations Ela
 
 ### 8.4 Pipeline Détection → Réponse (SOAR léger)
 
-Chaînage des composants défensifs pour réagir automatiquement à une attaque :
+> **Note d'état** : ce diagramme décrit l'**architecture cible** du pipeline défensif. Les briques **ELK + ResponseModule + AuditLog sont opérationnelles** ; le maillon **Snort est préparé** (règles + config Logstash) mais le conteneur Snort n'est pas dans le `docker-compose.yml` actuel (cf. §8.1 et §10.2). Le schéma reste pédagogiquement valide et démontre la chaîne complète une fois Snort déployé sur un hôte Linux.
+
+Chaînage des composants défensifs pour réagir à une attaque :
 
 ```
        ATTAQUANT
@@ -657,15 +671,17 @@ Chaînage des composants défensifs pour réagir automatiquement à une attaque 
 
 ### 10.2 Limites actuelles
 
+- **Conteneur Snort non déployé** : les 9 règles personnalisées et la config Logstash sont écrites et testables sur un Snort installé manuellement, mais le service Snort n'est **pas** intégré au `docker-compose.yml`. Raison : le mode IDS Snort nécessite `cap_add: NET_ADMIN` + accès promiscuous à une interface réseau, ce qui demande une configuration spécifique sous Docker Desktop Windows/WSL2 (l'environnement principal de l'équipe). Déploiement reporté à la phase d'évolution (cf. §10.3), réalisable rapidement sur un hôte Linux ou dans une VM Kali dédiée.
 - `msfrpcd` n'est pas démarré automatiquement — Metasploit nécessite une configuration manuelle
 - ZAP doit être lancé séparément (non intégré au compose pour limiter la taille d'image)
 - En dev local, le certificat Caddy nécessite un import manuel de la CA racine (one-shot par poste) — en prod cette étape disparaît (Let's Encrypt)
-- **Réponse active semi-automatisée** : la chaîne Snort → SIEM est entièrement automatique, mais le déclenchement de `ResponseModule.block_ip()` reste invoqué manuellement par l'analyste (depuis console ou via futur endpoint REST). Pas encore de SOAR end-to-end (cf. §10.3)
+- **Réponse active semi-automatisée** : `ResponseModule` est fonctionnel mais son déclenchement reste manuel (depuis console ou futur endpoint REST). Pas encore de SOAR end-to-end (cf. §10.3)
 
 ### 10.3 Perspectives d'évolution
 
 | Évolution | Impact |
 |-----------|--------|
+| **Service Snort dans docker-compose** (hôte Linux ou VM Kali dédiée) | Active le pipeline IDS end-to-end : les 9 règles existantes commencent à produire des alertes consommées par Logstash → Elasticsearch → `/siem` |
 | Sidecar `msfrpcd` préconfiguré + ZAP daemon | Automatisation complète Metasploit + web_scan |
 | Intégration SecLists | 1000+ wordlists prêtes à l'emploi |
 | Push d'image sur registry (CI déjà active, build prêt) | Distribution versionnée des images Docker |
