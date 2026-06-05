@@ -12,8 +12,9 @@
     auto_https disable_redirects
 }
 
-# HTTPS sur 443 avec cert auto-signé par la CA interne de Caddy
-:443 {
+# HTTPS sur localhost:443 avec cert auto-signé par la CA interne de Caddy
+# (le nom d'hôte est nécessaire pour que Caddy génère le bon cert serveur)
+localhost {
     tls internal
     reverse_proxy web:3000 {
         header_up X-Forwarded-Proto https
@@ -23,6 +24,6 @@
 }
 
 # Redirige tout le trafic HTTP (80) vers HTTPS (443)
-:80 {
+http://localhost {
     redir https://{host}{uri} permanent
 }
