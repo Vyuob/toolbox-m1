@@ -362,7 +362,7 @@ const presets = {
     quick:      { name: 'Quick',      icon: 'zap',      desc: 'Test rapide niveau 1, risk 1',                       args: '-u {target} --batch --level=1 --risk=1' },
     standard:   { name: 'Standard',   icon: 'shield',   desc: 'Niveau 3, risk 2, 4 threads, random user-agent',     args: '-u {target} --batch --level=3 --risk=2 --random-agent --threads=4' },
     aggressive: { name: 'Aggressive', icon: 'flame',    desc: 'Niveau 5 max, 10 threads, tamper anti-WAF',          args: '-u {target} --batch --level=5 --risk=3 --random-agent --threads=10 --tamper=space2comment' },
-    dump:       { name: 'Dump DB',    icon: 'database', desc: 'Énumère bases, tables et dump toutes les données',   args: '-u {target} --batch --dbs --tables --dump' },
+    dump:       { name: 'Dump DB',    icon: 'database', desc: 'Énumère DB courante + dump cible (users/admin/accounts) limite 5 lignes', args: '-u {target} --batch --current-db --tables -T users,admin,accounts --columns --dump --first=1 --last=5 --threads=10' },
   },
   // Hydra : plus de presets de commande brute. Le choix du service / des
   // wordlists passe par le formulaire structuré (wl-picker + modal).
@@ -1151,8 +1151,9 @@ function validateTarget() {
   }
 
   // John the Ripper : la cible est un hash, pas une IP/URL — on ne valide pas.
+  // Hydra : la cible peut être un hostname interne (ex: 'target', 'db' dans Docker) — on ne valide pas.
   const modeEl = document.getElementById('opt-mode');
-  if (currentModule === 'exploit' && modeEl && modeEl.value === 'john') {
+  if (currentModule === 'exploit' && modeEl && (modeEl.value === 'john' || modeEl.value === 'hydra')) {
     errDiv.style.display = 'none';
     input.classList.remove('input-invalid');
     input.classList.add('input-valid');

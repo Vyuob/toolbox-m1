@@ -129,6 +129,10 @@ def _validate_target(target: str, module: str = "", options: dict | None = None)
     # pas une IP / domaine / URL. On accepte tout non-vide.
     if module == "exploit" and (options or {}).get("mode") == "john":
         return None
+    # Hydra : la cible peut être un hostname interne (ex: 'target', 'db' dans Docker)
+    # ou n'importe quel service réseau accessible. On accepte tout non-vide.
+    if module == "exploit" and (options or {}).get("mode") == "hydra":
+        return None
     # Reconnaissance passive (dorks) : champ libre — marque, nom, produit, etc.
     if module == "passive_recon":
         return None

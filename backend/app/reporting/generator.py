@@ -212,8 +212,13 @@ class ReportGenerator:
         CODIR_BG     = colors.HexColor("#fff7ed")
         CODIR_BORDER = colors.HexColor("#fb923c")
         CODIR_TEXT   = colors.HexColor("#c2410c")
-        CODE_BG      = colors.HexColor("#0f172a")
-        CODE_FG      = colors.HexColor("#f8fafc")
+        # Code blocks : palette "slate" douce, texte sombre sur fond très clair.
+        # Texte sombre obligatoire car ReportLab ne re-dessine pas backColor sur
+        # les pages d'overflow (Preformatted long) — un texte clair serait invisible.
+        CODE_BG      = colors.HexColor("#f8fafc")  # slate-50 (presque blanc, plus pro que pur blanc)
+        CODE_FG      = colors.HexColor("#1e293b")  # slate-800 (sombre mais doux, moins agressif que noir pur)
+        CODE_BORDER  = colors.HexColor("#cbd5e1")  # slate-300 (bordure subtile autour des blocs)
+        CODE_ACCENT  = colors.HexColor("#3b82f6")  # blue-500 (filet vertical à gauche, style IDE)
 
         pdf_path = os.path.join(REPORTS_DIR, f"rapport_{job_id}.pdf")
         doc = SimpleDocTemplate(
@@ -248,8 +253,8 @@ class ReportGenerator:
             fontSize=8, textColor=MUTED, spaceAfter=5, leading=11)
         code_st = ParagraphStyle("code", parent=ss["Code"],
             fontSize=7.5, textColor=CODE_FG, backColor=CODE_BG,
-            borderPadding=8, leading=10.5,
-            fontName="Courier", leftIndent=0)
+            borderPadding=(8, 10, 8, 10), borderColor=CODE_BORDER, borderWidth=0.5,
+            leading=10.5, fontName="Courier", leftIndent=0, spaceAfter=8)
         codir_st = ParagraphStyle("codir", parent=ss["Normal"],
             fontSize=10, textColor=TEXT, leading=14, leftIndent=8, rightIndent=8,
             spaceBefore=4, spaceAfter=4)
@@ -357,13 +362,15 @@ class ReportGenerator:
             borderPadding=(6, 6, 6, 8), leftIndent=0,
             spaceAfter=6)
         cmd_st = ParagraphStyle("cmd", parent=body_st, fontName="Courier", fontSize=8.5,
-            backColor=colors.HexColor("#f1f5f9"), borderPadding=(4, 4, 4, 6), leading=12)
+            textColor=CODE_FG, backColor=CODE_BG,
+            borderPadding=(6, 8, 6, 10), borderColor=CODE_BORDER, borderWidth=0.5,
+            leading=12, spaceAfter=6)
         cred_st = ParagraphStyle("cred", parent=body_st, fontName="Courier", fontSize=8.5,
             textColor=colors.HexColor("#047857"), leading=12, leftIndent=14, spaceAfter=2)
         pre_st = ParagraphStyle("pre", parent=ss["Code"],
             fontSize=7.5, textColor=CODE_FG, backColor=CODE_BG,
-            borderPadding=8, leading=10,
-            fontName="Courier", leftIndent=0, spaceAfter=6)
+            borderPadding=(8, 10, 8, 10), borderColor=CODE_BORDER, borderWidth=0.5,
+            leading=10, fontName="Courier", leftIndent=0, spaceAfter=8)
 
         def _clip(text: str, limit: int = 20000) -> str:
             if text is None:

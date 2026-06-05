@@ -88,6 +88,24 @@ services:
     networks:
       - pentest_net
 
+  # ── Cible vulnérable (démos Hydra, John, etc.) ─────────────────
+  # SSH root:toor — volontairement faible pour démontrer le brute-force.
+  # Isolé sur le réseau Docker, jamais exposé sur le LAN.
+  target:
+    image: linuxserver/openssh-server:latest
+    container_name: pentest_target
+    restart: unless-stopped
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Paris"
+      PASSWORD_ACCESS: "true"
+      USER_NAME: "pentest_user"
+      USER_PASSWORD: "toor"
+      SUDO_ACCESS: "true"
+    networks:
+      - pentest_net
+
   # ── PostgreSQL ────────────────────────────────────────────────
   db:
     image: postgres:16-alpine

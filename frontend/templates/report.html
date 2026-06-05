@@ -83,10 +83,12 @@
   .badge--medium   { background: #f4a259; }
   .badge--low      { background: #16a34a; }
   .badge--info     { background: #3554d1; }
+  /* Blocs de code : aligné sur le PDF (palette slate, texte sombre sur fond clair) */
   pre {
-    background: #0f172a;
-    color: #f8fafc;
-    padding: 0.75rem 1rem;
+    background: #f8fafc;          /* slate-50 — même que CODE_BG dans le PDF */
+    color: #1e293b;               /* slate-800 — même que CODE_FG dans le PDF */
+    border: 1px solid #cbd5e1;    /* slate-300 — bordure subtile, comme PDF */
+    padding: 0.8rem 1rem;
     border-radius: 6px;
     overflow-x: auto;
     font-size: .78rem;
