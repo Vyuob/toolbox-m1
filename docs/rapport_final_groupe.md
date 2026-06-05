@@ -433,6 +433,83 @@ Caddy obtient et renouvelle automatiquement le certificat via ACME (HTTP-01 ou T
 - Avertissement explicite dans l'UI et dans les rapports : *« Utilisation uniquement sur des systèmes autorisés »*
 - Logs effaçables (suppression d'un job via `DELETE /api/modules/jobs/{id}` supprime aussi les rapports associés)
 
+### 7.7 Politiques de sécurité
+
+Synthèse des règles applicables au système ToolboxV8, formalisées pour répondre aux exigences du cadre pédagogique (§VII.3) :
+
+#### 7.7.1 Politique de mots de passe
+
+| Règle | Valeur |
+|-------|--------|
+| Algorithme de stockage | **bcrypt** (salage intégré, coût par défaut 12) |
+| Longueur minimale (à l'inscription) | 8 caractères |
+| Mots de passe en clair | **Jamais** stockés, **jamais** loggés (les mots de passe ne sont jamais sérialisés dans `AuditLog`) |
+| Rotation admin | Recommandée tous les 90 jours en production (mot de passe par défaut `admin/admin` à changer dès le 1er login) |
+
+#### 7.7.2 Politique d'authentification & session
+
+| Règle | Valeur |
+|-------|--------|
+| Mécanisme | JWT **HS256** signé avec `SECRET_KEY` (32 octets aléatoires, généré par `start.sh`/`start.ps1` au 1er démarrage) |
+| Durée de vie du token | **60 minutes** (`ACCESS_TOKEN_EXPIRE_MINUTES`) |
+| Stockage côté client | **Cookie HttpOnly + SameSite=Lax + Secure auto en HTTPS** (jamais en `localStorage`) |
+| Endpoint API direct | `POST /api/auth/token` toujours disponible pour clients externes (Bearer token) |
+| Renouvellement | Re-login après expiration (pas de refresh token — choix volontaire pour réduire la surface) |
+
+#### 7.7.3 Politique d'autorisation (RBAC)
+
+Trois rôles hiérarchiques définis dans [backend/app/core/auth.py](../backend/app/core/auth.py) :
+
+| Rôle | Droits |
+|------|--------|
+| `admin` | Toutes actions : créer/modifier/supprimer utilisateurs, lancer scans, générer rapports, consulter logs |
+| `analyst` | Lancer scans, consulter résultats, générer rapports — **pas** de gestion utilisateurs |
+| `reader` | Consultation seule des rapports et logs — **pas** de lancement de scan |
+
+Vérification systématique via les dépendances FastAPI `require_admin` / `require_analyst` à chaque endpoint sensible.
+
+#### 7.7.4 Politique de journalisation (audit)
+
+| Règle | Détail |
+|-------|--------|
+| Table | `audit_logs` ([backend/app/models/scan.py](../backend/app/models/scan.py)) |
+| Champs | `user_id`, `action`, `ip_address`, `timestamp`, `details` (JSONB) |
+| Actions tracées | Login (succès/échec), lancement de scan, génération de rapport, suppression de job, modification utilisateur |
+| Rétention recommandée | **6 mois minimum** (conformité ANSSI), purge automatique au-delà (cron à mettre en place en production) |
+| Indexation SIEM | Tous les résultats de scan également indexés dans Elasticsearch (`pentest-logs-*`) pour corrélation |
+| Inviolabilité | Logs en append-only (pas de `UPDATE`/`DELETE` via l'API), accès SQL réservé à l'admin DB |
+
+#### 7.7.5 Politique de gestion des secrets
+
+| Secret | Stockage | Rotation |
+|--------|----------|----------|
+| `SECRET_KEY` (JWT) | Variable d'environnement `.env` (hors git, dans `.gitignore`) | À régénérer en cas de fuite : `openssl rand -hex 32` puis redémarrage de l'API |
+| `FERNET_KEY` | Variable d'environnement `.env` | Rotation = re-chiffrement des secrets stockés (procédure manuelle documentée) |
+| `POSTGRES_PASSWORD` | Variable d'environnement `.env` | À changer en production (par défaut `pentest/pentest` réservé au dev) |
+| `VIRUSTOTAL_API_KEY` | Variable d'environnement `.env` | Régénération via le compte VirusTotal |
+| Mots de passe utilisateurs | DB PostgreSQL, **hashés bcrypt** | À l'initiative de l'utilisateur |
+| Cookies de session | Chiffrés (JWT signé), HttpOnly | Expiration 60 min |
+
+Aucun secret en clair dans le code source, le repo ou les logs (validation manuelle au commit + `.gitignore` strict sur `.env`, `*.key`, `*.pem`, `*.crt`).
+
+#### 7.7.6 Politique d'utilisation éthique
+
+| Règle | Mise en œuvre |
+|-------|---------------|
+| Cibles autorisées uniquement | Bandeau d'avertissement dans l'UI (`/modules`) et en pied de chaque rapport PDF |
+| Pas de scan agressif sans validation | Profils "Quick" par défaut, "Full" nécessite un clic explicite |
+| Traçabilité | Chaque scan est attribué à un utilisateur via `audit_logs` |
+| Conformité RGPD | Aucune donnée personnelle de tiers stockée, suppression sur demande possible (`DELETE /api/modules/jobs/{id}`) |
+
+#### 7.7.7 Politique de mise à jour & dépendances
+
+| Composant | Source | Fréquence cible |
+|-----------|--------|-----------------|
+| Images Docker (api, web) | `python:3.11-slim-bookworm` | Mensuelle (build CI re-tire l'image base) |
+| Image worker | `kalilinux/kali-rolling` | Hebdomadaire (Kali rolling pousse en continu) |
+| Dépendances Python | `pyproject.toml` + `poetry.lock` | Lock file commit, `poetry update` audité par PR |
+| CVE des dépendances | À surveiller via `pip-audit` ou GitHub Dependabot (recommandé pour la production) |
+
 ---
 
 ## 8. SIEM et supervision
