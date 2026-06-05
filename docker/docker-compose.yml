@@ -88,6 +88,21 @@ services:
     networks:
       - pentest_net
 
+  # ── OWASP ZAP (démon API pour module web_scan) ─────────────────
+  # API exposée sur :8080 avec clé "zapsecret".
+  # Démarrage ~30s (chargement plugins ZAP).
+  zap:
+    image: zaproxy/zap-stable
+    container_name: pentest_zap
+    restart: unless-stopped
+    command: >
+      zap.sh -daemon -host 0.0.0.0 -port 8080
+      -config api.key=zapsecret
+      -config api.addrs.addr.name=.*
+      -config api.addrs.addr.regex=true
+    networks:
+      - pentest_net
+
   # ── Cible vulnérable (démos Hydra, John, etc.) ─────────────────
   # SSH root:toor — volontairement faible pour démontrer le brute-force.
   # Isolé sur le réseau Docker, jamais exposé sur le LAN.

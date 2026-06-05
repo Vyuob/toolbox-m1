@@ -10,6 +10,7 @@ Intègre :
 import os
 import subprocess
 import shutil
+import time
 import logging
 import requests
 from typing import Any
@@ -50,16 +51,19 @@ class WebScanModule:
     }
 
     # Profils ZAP Active → paramètres de /JSON/ascan/action/scan/
-    # scanPolicyName doit être une politique existante côté ZAP.
+    # Pas de scanPolicyName custom : ZAP utilise sa policy par défaut (toujours
+    # présente). Les anciennes valeurs "XSS-SQLi" / "OWASP-Top10" provoquaient
+    # une 400 Bad Request car ces policies n'existent pas par défaut.
     _ZAP_ACTIVE_PROFILES = {
-        "quick":    {"recurse": "false", "scanPolicyName": "XSS-SQLi"},
-        "owasp":    {"recurse": "true",  "scanPolicyName": "OWASP-Top10"},
-        "full":     {"recurse": "true",  "scanPolicyName": "Default Policy"},
+        "quick":    {"recurse": "false"},
+        "owasp":    {"recurse": "true"},
+        "full":     {"recurse": "true", "scanPolicyName": "Default Policy"},
     }
 
     def _zap_scan(self, target: str, options: dict) -> dict:
-        zap_url   = options.get("zap_url", "http://localhost:8080")
-        zap_key   = options.get("zap_api_key", "")
+        # Défauts alignés sur le service zap du docker-compose (réseau pentest_net).
+        zap_url   = options.get("zap_url") or os.getenv("ZAP_URL", "http://zap:8080")
+        zap_key   = options.get("zap_api_key") or os.getenv("ZAP_API_KEY", "zapsecret")
         scan_type = options.get("scan_type", "spider")
 
         if scan_type == "spider":
@@ -85,17 +89,85 @@ class WebScanModule:
             scan_id = r.json().get("scan")
             status_path = "spider" if scan_type == "spider" else "ascan"
             pretty_params = " ".join(f"{k}={v}" for k, v in profile_params.items())
-            output = (
-                f"$ curl -s '{endpoint}?url={target}&{pretty_params}'\n"
-                f"[+] Scan ZAP {scan_type} ({profile_key}) démarré → scan_id = {scan_id}\n"
-                f"[+] Suivre la progression : {zap_url}/JSON/{status_path}/view/status/?scanId={scan_id}"
-            )
+
+            # Polling jusqu'à fin du scan (max 8 min en Active, 3 min en Spider)
+            max_wait = int(options.get("zap_max_wait", 480 if scan_type == "active" else 180))
+            status_url = f"{zap_url}/JSON/{status_path}/view/status/"
+            start = time.monotonic()
+            last_status = "0"
+            log_lines = [
+                f"$ curl -s '{endpoint}?url={target}&{pretty_params}'",
+                f"[+] Scan ZAP {scan_type} ({profile_key}) démarré → scan_id = {scan_id}",
+                f"[+] Polling progression (timeout {max_wait}s)…",
+            ]
+            while time.monotonic() - start < max_wait:
+                try:
+                    sr = requests.get(status_url, params={"apikey": zap_key, "scanId": scan_id}, timeout=10)
+                    last_status = sr.json().get("status", "0")
+                    if last_status == "100":
+                        break
+                except requests.RequestException:
+                    pass
+                time.sleep(5)
+
+            elapsed = int(time.monotonic() - start)
+            log_lines.append(f"[+] Scan terminé à {last_status}% en {elapsed}s")
+
+            # Récupération des alertes (Active uniquement — Spider ne génère pas d'alertes)
+            alerts: list[dict] = []
+            findings_summary: list[str] = []
+            if scan_type == "active":
+                try:
+                    ar = requests.get(
+                        f"{zap_url}/JSON/core/view/alerts/",
+                        params={"apikey": zap_key, "baseurl": target},
+                        timeout=15,
+                    )
+                    alerts = ar.json().get("alerts", []) or []
+                except requests.RequestException as e:
+                    log_lines.append(f"[!] Echec récupération alertes : {e}")
+
+                # Agrégation par (nom, risque) pour ne pas spammer les doublons
+                from collections import Counter
+                counter: Counter = Counter()
+                for a in alerts:
+                    counter[(a.get("alert", "?"), a.get("risk", "?"))] += 1
+
+                log_lines.append(f"[+] {len(alerts)} alertes trouvées ({len(counter)} types uniques)")
+                # Tri par sévérité décroissante puis par occurrence
+                risk_order = {"High": 0, "Medium": 1, "Low": 2, "Informational": 3}
+                items = sorted(counter.items(), key=lambda kv: (risk_order.get(kv[0][1], 9), -kv[1]))
+                for (name, risk), count in items[:50]:
+                    findings_summary.append(f"[{risk:13s}] x{count:<3d} {name}")
+            else:
+                # Spider : récupérer les URLs découvertes
+                try:
+                    ur = requests.get(
+                        f"{zap_url}/JSON/spider/view/results/",
+                        params={"apikey": zap_key, "scanId": scan_id},
+                        timeout=15,
+                    )
+                    urls = ur.json().get("results", []) or []
+                    log_lines.append(f"[+] {len(urls)} URLs découvertes par le Spider")
+                    for u in urls[:30]:
+                        findings_summary.append(u)
+                except requests.RequestException as e:
+                    log_lines.append(f"[!] Echec récupération URLs : {e}")
+
+            output = "\n".join(log_lines)
+            if findings_summary:
+                output += "\n\n=== Résumé des découvertes ===\n" + "\n".join(findings_summary)
+
             return {
                 "command": f"GET {endpoint}?url={target}&{pretty_params}",
                 "profile": profile_key,
                 "output": output,
                 "scan_id": scan_id,
                 "type": scan_type,
+                "status_pct": last_status,
+                "elapsed_s": elapsed,
+                "alerts_count": len(alerts),
+                "alerts": alerts[:50] if scan_type == "active" else None,
             }
         except requests.RequestException as e:
             return {"error": f"ZAP non disponible : {e}"}
