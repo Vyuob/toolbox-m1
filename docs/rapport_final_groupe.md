@@ -106,6 +106,7 @@ Selon le cahier des charges (section II), les cinq pôles du client ont des beso
 | S7 | Rebranding ToolboxV8 + finalisation rapport v1 | Première version du présent document |
 | S8 | Module Reconnaissance passive (OSINT) | `passive_recon.py`, 18 templates de Google Dorks (Mot-clé, Réseaux sociaux, Domaine), cible en champ libre, ouverture multi-onglets |
 | S9 | Sécurité réseau & DevOps | Caddy HTTPS reverse proxy (cert auto), CI/CD GitHub Actions + GitLab CI (lint/test/build), SSLyze pré-check TCP avec fallback IPv4/IPv6 |
+| S10 | Démos validées end-to-end + cibles vulnérables intégrées | Conteneur `pentest_target` (SSH faible pour Hydra), conteneur `pentest_zap` (daemon API), refonte `web_scan.py` (polling + récupération alertes), SQLmap dump ciblé, validations cibles assouplies, palette PDF/HTML alignée |
 
 ### 3.3 Répartition des tâches
 
@@ -127,9 +128,12 @@ Navigateur ── 443 (HTTPS) ── Caddy ─┐
                               │                          └─ proxy /api/* ── 8000 ── api (FastAPI)
                               │                                              ├─ PostgreSQL
                               │                                              └─ Redis ── worker (Celery + Kali)
-                              │                                                             └─ /tmp/wordlists (volume partagé)
+                              │                                                             ├─ /tmp/wordlists (volume partagé)
+                              │                                                             └─→ services cibles internes :
+                              │                                                                  • zap:8080  (OWASP ZAP daemon API)
+                              │                                                                  • target:2222 (SSH faible pour Hydra)
                               │
-ELK (Elasticsearch + Logstash + Kibana)   MinIO (rapports S3)   Snort 3 (IDS)
+ELK (Elasticsearch + Logstash + Kibana)   MinIO (rapports S3)   Snort 3 (IDS, règles préparées)
 ```
 
 **Justification du split `api` / `web`** :
@@ -156,6 +160,8 @@ ELK (Elasticsearch + Logstash + Kibana)   MinIO (rapports S3)   Snort 3 (IDS)
 | Reporting | ReportLab 4 | Mise en page professionnelle, preformatted pour CLI brut |
 | Reverse proxy TLS | Caddy 2 (`caddy:2-alpine`) | HTTPS auto via CA interne, config 3 lignes, basculement Let's Encrypt en 1 ligne pour la prod |
 | CI/CD | GitHub Actions + GitLab CI (parallèle) | Lint → tests pytest avec PG/Redis → build Docker, à chaque push |
+| Scanner web | OWASP ZAP 2.17 daemon (`zaproxy/zap-stable`) | API REST sur :8080, intégré au compose, polling + récupération auto des alertes |
+| Cible vulnérable | `linuxserver/openssh-server` (`pentest_target`) | SSH faible `pentest_user:toor` sur :2222, démos Hydra réutilisables |
 | Containers | Docker Compose v2 | Lancement en une commande |
 
 ### 4.3 Flux d'authentification
@@ -260,7 +266,7 @@ La fonction `_build_tools_sections(result)` normalise les champs `command`, `out
 | recon | Nmap, DNS, whois, WhatWeb | Nmap : Quick/Standard/Full TCP/Stealth |
 | scan | Nmap `--script=vuln`, Nikto, SSLyze | Nmap NSE : Quick/Standard/Full/Safe — Nikto : Quick/Standard/Full/Evasion — SSLyze : Cert/Standard/Full (avec pré-check TCP IPv4/IPv6 + détection cible sans HTTPS) |
 | exploit | SQLmap, Hydra, John jumbo, Metasploit | SQLmap : Quick/Standard/Aggressive/Dump — MSF : Handler/EternalBlue/PortScan/SMB |
-| web_scan | OWASP ZAP (Spider + Active), Dependency-Check | ZAP Spider : Quick/Standard/Deep — ZAP Active : Quick/OWASP/Full |
+| web_scan | OWASP ZAP (Spider + Active, daemon API intégré au compose), Gobuster, Dependency-Check | ZAP Spider : Quick/Standard/Deep avec récupération des URLs découvertes — ZAP Active : Quick/OWASP/Full avec polling jusqu'à 100% + récupération des alertes agrégées par sévérité — Gobuster : Quick/Standard/Full sur wordlists dirb |
 | post_exploit | (documentaire) | — |
 
 Détails des profils → [docs/modules.md](modules.md).
@@ -312,8 +318,15 @@ Nouvel endpoint `POST /api/modules/wordlist` (multipart). Fichier stocké dans u
 ### 6.1 Environnement de test
 
 - **Hôte** : Windows 11 + Docker Desktop (WSL2)
-- **Cibles** : Metasploitable2 déployé sur IP interne, serveur Apache de test, hash `md5crypt` artificiel
-- **Jeux de tests** : 30 scans enchaînés (recon, scan, exploit/john, web_scan)
+- **Cibles publiques autorisées** (sites Acunetix volontairement vulnérables) :
+  - `testasp.vulnweb.com` (ASP / IIS / MSSQL) — SQLmap, ZAP, Gobuster
+  - `scanme.nmap.org` — Nmap NSE, Nikto, recon
+  - `badssl.com` — SSLyze (audit TLS complet)
+- **Cibles locales intégrées au compose** (réutilisables soutenance) :
+  - `pentest_target` — conteneur SSH avec credentials faibles (`pentest_user:toor` sur port 2222) pour Hydra
+  - `db` — PostgreSQL (peut servir de cible Hydra mode `postgres`)
+- **Hash de démo** : MD5 raw + SHA512crypt style `/etc/shadow` pour John the Ripper
+- **Jeux de tests** : ≈ 50 scans enchaînés couvrant les 5 modules
 
 ### 6.2 KPI temps d'exécution
 
@@ -325,11 +338,23 @@ Nouvel endpoint `POST /api/modules/wordlist` (multipart). Fichier stocké dans u
 
 ✅ **Objectif cahier des charges (≥ 40 %) atteint largement**.
 
-### 6.3 KPI vulnérabilités détectées
+### 6.3 KPI vulnérabilités détectées (mesures réelles end-to-end)
 
-- 100 % des CVE connues testables par Nmap NSE sur Metasploitable2 remontent dans le rapport
-- Nikto remonte bien les headers manquants + fichiers exposés
-- SQLmap mode Quick détecte les injections simples en < 60 s
+| Test | Cible | Résultat mesuré |
+|------|-------|-----------------|
+| SQLmap Quick | testasp.vulnweb.com/showforum.asp?id=0 | **3 types d'injection** détectés (boolean-based blind, stacked queries, time-based blind), MSSQL 2014 + IIS 8.5 fingerprintés en ~5 min |
+| SQLmap Dump | même cible | Énumération de **7 bases de données** (acufo, acuse, master, model, msdb, tempd) + tentatives sur 8 tables sensibles |
+| Hydra SSH | `pentest_target:2222` | **Cracké `pentest_user:toor` en 1 seconde** avec wordlist 5 mots |
+| John MD5 | hash `21232f297a57a5a743894a0e4a801fc3` | **Cracké "admin" en 0 seconde** (format raw-md5, wordlist 5 mots) |
+| ZAP Spider | testasp.vulnweb.com | URLs découvertes via crawl récursif, scanId tracké |
+| **ZAP Active Quick** | testasp.vulnweb.com | **105 alertes** sur 14 types uniques en 55s (Medium : CSP / Anti-clickjacking / Anti-CSRF ; Low : leaks Server/X-Powered-By ; Informational : User Agent Fuzzer / XSS potentielles) |
+| Gobuster Quick | testasp.vulnweb.com | 13 chemins cachés découverts (`/_vti_pvt`, `/cgi-bin`, `/templates/`, `/aspnet_client`, etc.) |
+| SSLyze Standard | badssl.com:443 | Audit TLS complet : certificat, chaîne, toutes versions TLS, cipher suites, headers de sécurité |
+| Nmap NSE Quick | scanme.nmap.org | Détection ports + scripts vuln (port 22 SSH, port 80 HTTP, port 443 filtré) |
+| Nikto Quick | scanme.nmap.org:80 | Apache 2.4.7 fingerprinté + 9 findings (headers manquants, mod_negotiation, etc.) |
+| passive_recon | "etudiant" + "League of Legends" | 18 dorks générés sur 3 catégories (Mot-clé / Réseaux sociaux / Domaine), ouverture multi-onglets fonctionnelle |
+
+✅ **Couverture : 5 modules sur 5 démontrés avec des rapports PDF produits**.
 
 ### 6.4 KPI stabilité
 
@@ -653,6 +678,12 @@ Chaînage des composants défensifs pour réagir à une attaque :
 | **SSLyze : `[Errno 101] Network is unreachable`** dans le conteneur worker | `socket.create_connection()` tentait IPv6 (résolu par `getaddrinfo`) sans fallback IPv4 propre, et le réseau Docker n'a pas de route v6 | Réimplémentation avec `getaddrinfo` + tri **IPv4 d'abord, IPv6 en fallback** + boucle de connexion explicite — message d'erreur final pertinent (timeout / refused / unreachable) |
 | **Caddy `ERR_SSL_PROTOCOL_ERROR`** au premier démarrage | Caddyfile écrit `:443 { tls internal }` sans nom d'hôte → Caddy ne savait pas pour quel CN générer le cert serveur (handshake renvoyait `tlsv1 alert internal error`) | Remplacement de `:443` par `localhost` dans le Caddyfile → cert serveur généré au bon nom, validation client OK |
 | **Reconnaissance passive : "Format invalide"** sur cible type "etudiant" ou "League of Legends" | Validation cible front+back imposait IP / domaine / URL strict | Bypass de validation pour `passive_recon` (front [modules.html](../frontend/templates/modules.html), back [modules.py](../backend/app/api/routes/modules.py)) — sur le même modèle que John (hash) |
+| **Hydra : "Format invalide"** sur cible `target` (nom de service Docker) | Même validation qui exige un domaine avec TLD | Bypass étendu au mode `hydra` (cible peut être un hostname interne Docker comme `target`, `db`, etc.) |
+| **Hydra : pas de cible réutilisable** pour les démos | Pas de service vulnérable dans le compose | Ajout du conteneur `pentest_target` (`linuxserver/openssh-server` avec `pentest_user:toor` sur :2222). Réutilisable à chaque démarrage de la stack et à la soutenance. Note : `USER_NAME=root` refusé par l'image (user existant), fallback sur `pentest_user` |
+| **ZAP Active "scan terminé en 2s"** alors qu'il devait durer 5 min | Le module faisait du "fire and forget" : appel à `/JSON/ascan/action/scan/` puis retour immédiat avec le `scan_id`, **sans attendre la fin ni récupérer les alertes** | Refonte `_zap_scan()` avec polling automatique (toutes les 5s jusqu'à 100% ou timeout 8 min) + récupération des alertes via `/JSON/core/view/alerts/`, agrégation par (nom, sévérité), tri par criticité OWASP, top 50 dans le rapport |
+| **ZAP `400 Bad Request` sur Active scan Quick** | Profil référençait `scanPolicyName=XSS-SQLi` qui n'existe pas par défaut dans ZAP | Suppression des policies custom inexistantes ; `Quick` et `OWASP` utilisent la default policy implicite, `Full` la référence explicitement (`Default Policy` existe toujours) |
+| **PDF rapport : pages 2+ "vides" pour blocs longs** (SQLmap dump) | `ParagraphStyle` avec `textColor=#f8fafc` (presque blanc) sur `backColor=#0f172a` (sombre) ; ReportLab ne re-dessine **pas** `backColor` sur les pages d'overflow → texte blanc sur fond blanc = invisible | Inversion de la palette : texte sombre (`#1e293b`) sur fond clair (`#f8fafc`) + bordure subtile (`#cbd5e1`), garanti lisible même sur les overflows. Style HTML report aligné pour cohérence visualiseur / téléchargement |
+| **PDF non régénéré après modification du générateur** | Le générateur PDF tourne dans le **worker** Celery (via `tasks.generate_report`), pas dans l'API. Un rebuild de l'API seul n'avait aucun effet | Rebuilder systématiquement `worker` après toute modification de `reporting/generator.py` |
 
 ---
 
@@ -662,27 +693,29 @@ Chaînage des composants défensifs pour réagir à une attaque :
 
 - [x] Toolbox fonctionnelle couvrant **reconnaissance passive (OSINT)**, reconnaissance active, scan de vulnérabilités, exploitation, analyse web et post-exploitation documentaire
 - [x] **5 modules offensifs** + 4 modules défensifs (SIEM, IDS, response, forensic)
+- [x] **Démos end-to-end validées** sur les 5 modules avec rapports PDF produits (cf. §6.3)
 - [x] Réduction du temps de pentest bien au-delà des 40 % visés (≈ 75 % sur recon+scan, ≈ 99 % sur la rédaction de rapport)
 - [x] Interface utilisable par un analyste sans code (profils par chips, upload fichiers, catalogue de dorks)
-- [x] Reporting PDF standardisé, charte professionnelle, sortie CLI lisible
-- [x] Intégration Docker Compose simple : `./scripts/start.sh`
+- [x] Reporting PDF standardisé, charte professionnelle, sortie CLI lisible, lisibilité garantie sur les pages d'overflow
+- [x] Intégration Docker Compose simple : `./scripts/start.sh` — stack complète y compris **cibles vulnérables intégrées** (`pentest_target` SSH, `zap` daemon API)
 - [x] Sécurisation : JWT + cookie HttpOnly + RBAC + Fernet + audit logs + **HTTPS** (Caddy reverse proxy)
 - [x] **CI/CD** : GitHub Actions + GitLab CI (lint, tests, build Docker) à chaque push
+- [x] **ZAP Active scan** opérationnel avec polling + récupération automatique des alertes (preuve : 105 alertes sur testasp.vulnweb.com dans le rapport)
 
 ### 10.2 Limites actuelles
 
 - **Conteneur Snort non déployé** : les 9 règles personnalisées et la config Logstash sont écrites et testables sur un Snort installé manuellement, mais le service Snort n'est **pas** intégré au `docker-compose.yml`. Raison : le mode IDS Snort nécessite `cap_add: NET_ADMIN` + accès promiscuous à une interface réseau, ce qui demande une configuration spécifique sous Docker Desktop Windows/WSL2 (l'environnement principal de l'équipe). Déploiement reporté à la phase d'évolution (cf. §10.3), réalisable rapidement sur un hôte Linux ou dans une VM Kali dédiée.
-- `msfrpcd` n'est pas démarré automatiquement — Metasploit nécessite une configuration manuelle
-- ZAP doit être lancé séparément (non intégré au compose pour limiter la taille d'image)
+- **Metasploit** : `msfrpcd` n'est pas démarré automatiquement dans le worker. Le module `_metasploit()` est codé et invocable via `pymetasploit3`, mais nécessite (a) une installation manuelle de la dépendance Python et (b) le lancement du démon RPC en parallèle. Documentation §10.3 pour le sidecar préconfiguré.
 - En dev local, le certificat Caddy nécessite un import manuel de la CA racine (one-shot par poste) — en prod cette étape disparaît (Let's Encrypt)
 - **Réponse active semi-automatisée** : `ResponseModule` est fonctionnel mais son déclenchement reste manuel (depuis console ou futur endpoint REST). Pas encore de SOAR end-to-end (cf. §10.3)
+- **SQLmap dump sur cible distante lente** : le profil Dump est volontairement bridé (5 lignes max, threads=10, technique boolean-based) pour rester sous 15 min. Sur testasp.vulnweb.com (time-based blind imposé par le WAF), même bridé l'extraction de lignes ne réussit pas systématiquement — limite intrinsèque à l'injection blind sur cible distante
 
 ### 10.3 Perspectives d'évolution
 
 | Évolution | Impact |
 |-----------|--------|
 | **Service Snort dans docker-compose** (hôte Linux ou VM Kali dédiée) | Active le pipeline IDS end-to-end : les 9 règles existantes commencent à produire des alertes consommées par Logstash → Elasticsearch → `/siem` |
-| Sidecar `msfrpcd` préconfiguré + ZAP daemon | Automatisation complète Metasploit + web_scan |
+| Sidecar `msfrpcd` préconfiguré + `pymetasploit3` dans le worker | Automatisation complète Metasploit (le seul outil offensif encore non démontrable end-to-end depuis l'UI) |
 | Intégration SecLists | 1000+ wordlists prêtes à l'emploi |
 | Push d'image sur registry (CI déjà active, build prêt) | Distribution versionnée des images Docker |
 | **Endpoint REST `POST /api/defensive/response/block-ip`** | Boucler la chaîne SOAR : alerte Snort → règle de corrélation Elasticsearch → trigger HTTP → blocage iptables automatique |
