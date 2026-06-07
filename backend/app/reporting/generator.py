@@ -191,7 +191,11 @@ class ReportGenerator:
         return path
 
     def _generate_pdf(self, context: dict, job_id: int) -> str:
-        """Génère un vrai PDF structuré avec ReportLab, inspiré du modèle pentest_rapport_generator."""
+        """Génère un vrai PDF structuré avec ReportLab.
+
+        S'inspire de la mise en page de l'exemple HTML dans
+        pentest_rapport_generator_inspiration/ (template externe utilisé comme
+        référence de charte graphique, pas comme dépendance runtime)."""
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
