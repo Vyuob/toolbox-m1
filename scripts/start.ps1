@@ -103,6 +103,37 @@ function Wait-Api {
     return $false
 }
 
+function Wait-Caddy {
+    # Verifie que Caddy repond en HTTPS sur :443 (cert auto-signe accepte).
+    Log "Attente que Caddy soit pret..."
+    # Ignore le warning de cert auto-signe (CA Caddy interne)
+    Add-Type @"
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+public class TrustAllCertsPolicy : ICertificatePolicy {
+    public bool CheckValidationResult(ServicePoint sp, X509Certificate cert,
+                                       WebRequest req, int problem) { return true; }
+}
+"@ -ErrorAction SilentlyContinue
+    try { [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy } catch {}
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+    for ($i = 0; $i -lt 20; $i++) {
+        try {
+            $r = Invoke-WebRequest -Uri "https://localhost/login" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($r.StatusCode -eq 200) {
+                Ok "Caddy HTTPS pret."
+                return $true
+            }
+        } catch {}
+        Start-Sleep -Seconds 2
+        Write-Host "." -NoNewline
+    }
+    Write-Host ""
+    Warn "Caddy ne repond pas en HTTPS, ouverture du navigateur quand meme."
+    return $false
+}
+
 function Create-Admin {
     Log "Verification du compte admin..."
     try {
@@ -154,14 +185,19 @@ function Start-Stack {
 
         $apiReady = Wait-Api
         if ($apiReady) { Create-Admin }
+        $caddyReady = Wait-Caddy
 
         Write-Host ""
         Write-Host "  ===== Stack ToolboxV8 lancee ! =====" -ForegroundColor Green
         Write-Host ""
-        Write-Host "  App web       : " -NoNewline -ForegroundColor White
-        Write-Host "http://localhost:3000" -ForegroundColor Cyan
+        Write-Host "  App web HTTPS : " -NoNewline -ForegroundColor White
+        Write-Host "https://localhost" -ForegroundColor Cyan -NoNewline
+        Write-Host "  (recommande)" -ForegroundColor DarkGray
+        Write-Host "  App web HTTP  : " -NoNewline -ForegroundColor White
+        Write-Host "http://localhost:3000" -ForegroundColor DarkGray -NoNewline
+        Write-Host "  (fallback dev)" -ForegroundColor DarkGray
         Write-Host "  SIEM          : " -NoNewline -ForegroundColor White
-        Write-Host "http://localhost:3000/siem" -ForegroundColor Cyan
+        Write-Host "https://localhost/siem" -ForegroundColor Cyan
         Write-Host "  API Docs      : " -NoNewline -ForegroundColor White
         Write-Host "http://localhost:8000/api/docs" -ForegroundColor Cyan
         Write-Host "  Kibana        : " -NoNewline -ForegroundColor White
@@ -178,8 +214,14 @@ function Start-Stack {
         Write-Host "    .\scripts\start.ps1 -Mode rebuild" -ForegroundColor DarkGray
         Write-Host ""
 
-        Log "Ouverture du navigateur..."
-        Start-Process "http://localhost:3000/login"
+        # Ouverture du navigateur : HTTPS si Caddy repond, sinon fallback HTTP
+        if ($caddyReady) {
+            Log "Ouverture du navigateur (HTTPS via Caddy)..."
+            Start-Process "https://localhost/login"
+        } else {
+            Log "Caddy non pret, ouverture du navigateur en HTTP direct (port 3000)..."
+            Start-Process "http://localhost:3000/login"
+        }
     }
 }
 
