@@ -3,13 +3,15 @@ VIDÉOS DE DÉMO — ToolboxV8
 
 Place tes vidéos de démonstration dans CE dossier, avec EXACTEMENT ces noms :
 
-  Slide 11  →  demo-osint.mp4      (Reconnaissance passive / OSINT)
-  Slide 12  →  demo-sqlmap.mp4     (SQLmap — injection SQL)
-  Slide 13  →  demo-hydra.mp4      (Hydra — brute-force SSH)
-  Slide 14  →  demo-john.mp4       (John the Ripper — cassage de hash)
-  Slide 15  →  demo-zap.mp4        (OWASP ZAP — scan web)
-  Slide 16  →  demo-gobuster.mp4   (Gobuster — pages cachées)
-  Slide 19  →  demo-rapport.mp4    (Génération du rapport PDF)
+  Slide 11      →  demo-01-osint.mp4         (Reconnaissance passive / OSINT — Titouan)
+  Slide 11 bis  →  demo-02-recon-active.mp4  (Reconnaissance active : Nmap/Whois/WhatWeb — Ayoub)
+  Slide 11 ter  →  demo-03-scan-vuln.mp4     (Scan vulnérabilités : Nikto — Titouan)
+  Slide 12      →  demo-04-sqlmap.mp4        (SQLmap — injection SQL — Abdallah)
+  Slide 13      →  demo-05-hydra.mp4         (Hydra — brute-force SSH — Ayoub)
+  Slide 14      →  demo-06-john.mp4          (John the Ripper — cassage de hash — Abdallah)
+  Slide 15      →  demo-07-zap.mp4           (OWASP ZAP — scan web — Abdallah)
+  Slide 16      →  demo-08-gobuster.mp4      (Gobuster — pages cachées — Abdallah)
+  Slide 20      →  demo-09-rapport-pdf.mp4   (Génération du rapport PDF — Titouan)
 
 
 COMMENT ACTIVER UNE VIDÉO
@@ -21,11 +23,11 @@ COMMENT ACTIVER UNE VIDÉO
      - SUPPRIME (ou laisse) le bloc <div class="vs-ph">…</div> qui est le placeholder.
 
    Exemple AVANT :
-     <!-- <video controls preload="metadata" src="videos/demo-osint.mp4"></video> -->
+     <!-- <video controls preload="metadata" src="videos/demo-01-osint.mp4"></video> -->
      <div class="vs-ph"> … </div>
 
    Exemple APRÈS :
-     <video controls preload="metadata" src="videos/demo-osint.mp4"></video>
+     <video controls preload="metadata" src="videos/demo-01-osint.mp4"></video>
 
    (Si tu laisses le placeholder, il sera simplement masqué par la vidéo.)
 
@@ -35,7 +37,7 @@ FORMAT CONSEILLÉ
 - Conteneur : .mp4 (codec H.264 + audio AAC) — lu par tous les navigateurs.
 - Résolution : 1280×720 ou 1920×1080 (la zone est en 16:9).
 - Durée : 30 à 60 s par démo idéalement.
-- Astuce : ajoute   poster="videos/demo-osint.jpg"   sur la balise <video>
+- Astuce : ajoute   poster="videos/demo-01-osint.jpg"   sur la balise <video>
   pour afficher une image d'aperçu avant lecture.
 
 Dis-moi si tu préfères que je décommente directement les balises <video>

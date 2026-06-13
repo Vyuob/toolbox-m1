@@ -82,34 +82,44 @@
 
 ---
 
-# ACTE 3 — LA DÉMONSTRATION (~9 min 45)
+# ACTE 3 — LA DÉMONSTRATION (~11 min 15)
 
 ### Slide 11 — DÉMO 1 : Reconnaissance passive OSINT (~1 min 15)
 
 **Titouan** : *[lance la vidéo de démo de la slide]*
 > Premier module : la **reconnaissance passive**. Imaginons qu'un client comme **Nike** nous mandate pour un audit OSINT — qu'est-ce qu'on trouve publiquement sur leur marque, sans envoyer un seul paquet à leurs serveurs ? Je tape simplement « Nike » dans le champ cible : pas besoin de domaine, le champ est libre. Je coche les catégories **Mot-clé** et **Réseaux sociaux** : ça génère automatiquement **12 dorks Google ciblés** — des recherches de PDF, CV publics, mentions sur LinkedIn, GitHub, Twitter, Reddit, Facebook, Pastebin, mais aussi des dorks plus offensifs : recherche de **fuites** (« leaked », « breach », « dump ») et de **mentions de credentials**. Je clique Lancer, et la toolbox **ouvre automatiquement un onglet Google par dork**. Le rapport PDF liste les 12 requêtes générées. Tout est **100% passif** : zéro paquet envoyé à Nike, on interroge uniquement Google qui restitue ce qui est déjà indexé publiquement — conformité RGPD garantie.
 
-### Slide 12 — DÉMO 2 : SQLmap, injection SQL (~1 min 15)
+### Slide 11 bis — DÉMO 2 : Reconnaissance active (~45 sec)
+
+**Ayoub** : *[lance la vidéo de démo de la slide]*
+> Après l'OSINT, on touche au réseau de la cible — mais toujours en mode autorisé. Cible : **scanme.nmap.org**, le serveur officiel du projet Nmap mis en ligne pour qu'on puisse s'entraîner légalement. Profil **Quick** — un coup d'œil rapide. La toolbox enchaîne **trois outils** en parallèle : **Nmap** repère les ports ouverts et identifie les services, **Whois** récupère le propriétaire du domaine, et **WhatWeb** fingerprinte les technos web. Résultat en quelques secondes : ports **22 SSH** et **80 HTTP** ouverts, identification d'**Apache** côté web, propriétaire du domaine résolu. Tout est consolidé dans le rapport PDF en une seule page — la cartographie de la cible est faite.
+
+### Slide 11 ter — DÉMO 3 : Scan de vulnérabilités (~45 sec)
+
+**Titouan** : *[lance la vidéo de démo de la slide]*
+> Une fois la surface identifiée, on passe au **scan de vulnérabilités**. Même cible scanme.nmap.org, port 80. J'active **Nikto** en profil Quick et je désactive SSLyze — scanme n'a pas de HTTPS donc pas besoin d'audit TLS. Nikto bombarde le serveur d'environ **6000 requêtes** de tests : recherche de fichiers exposés, headers de sécurité manquants, anciennes versions exploitables. Résultat : **Apache fingerprinté**, plusieurs **headers de sécurité manquants** (X-Content-Type-Options, Strict-Transport-Security), `mod_negotiation` activé — un vecteur d'énumération connu. C'est exactement ce qu'un audit client doit produire : des findings concrets, classés et directement actionnables par l'équipe sécurité.
+
+### Slide 12 — DÉMO 4 : SQLmap, injection SQL (~1 min 15)
 
 **Abdallah** : *[lance la vidéo de démo de la slide]*
 > On passe à l'**exploitation**. Cible légalement autorisée : `testasp.vulnweb.com`, un site volontairement vulnérable d'Acunetix. Outil : **SQLmap**, profil Quick. Pendant que ça tourne, un mot sur la sécurité de l'outil : **tous les scans sont tracés** dans une table d'audit. Si le client a un contrôle, on produit la liste exhaustive des scans, qui les a lancés et sur quelle cible. Résultat : SQLmap confirme la vulnérabilité avec **deux types d'injection** — boolean-based blind et time-based blind. Base de données identifiée : **Microsoft SQL Server 2014**. Stack web : **ASP, ASP.NET, IIS 8.5**. Le tout exporté en PDF en un clic.
 
-### Slide 13 — DÉMO 3 : Hydra, brute-force SSH (~1 min)
+### Slide 13 — DÉMO 5 : Hydra, brute-force SSH (~1 min)
 
 **Ayoub** : *[lance la vidéo de démo de la slide]*
 > Démo suivante : **Hydra**, le cassage d'identifiants. Pour rester légal, j'ai déployé une **cible interne dans notre stack** — un serveur SSH volontairement faible, isolé sur le réseau Docker, que j'ai monté côté back-end. Cible : `target`, port 2222. Une liste de cinq mots de passe dont le bon. Sur la vidéo : **cracké en une seconde** — `pentest_user : toor`. Imaginez la même chose sur une vraie cible avec la wordlist rockyou et ses 14 millions d'entrées : un compte faible tombe en quelques minutes. C'est exactement le risque qu'on aide le client à mesurer.
 
-### Slide 14 — DÉMO 4 : John the Ripper, cassage de hash (~50 sec)
+### Slide 14 — DÉMO 6 : John the Ripper, cassage de hash (~50 sec)
 
 **Ayoub** : *[lance la vidéo de démo de la slide]*
 > Deuxième outil de mon côté : **John the Ripper**. Cas d'usage : on a récupéré un hash après une compromission. Sur la vidéo, je colle un hash MD5 — celui du mot « admin » — au format raw-md5. **0 seconde** : John retrouve le mot de passe d'origine. Notre version supporte **304 formats** : bcrypt, sha512crypt des `/etc/shadow` Linux, NTLM Windows, coffres KeePass, archives ZIP… Je rends la parole à Abdallah pour l'analyse web.
 
-### Slide 15 — DÉMO 5 : OWASP ZAP, scan web (~1 min 15)
+### Slide 15 — DÉMO 7 : OWASP ZAP, scan web (~1 min 15)
 
 **Abdallah** : *[lance la vidéo de démo de la slide]*
 > Cinquième module : **OWASP ZAP**, notre scanner web. On l'a intégré directement dans la stack Docker — rien à installer à part. Cible : `testasp.vulnweb.com`, Active scan. Ce que fait le module est subtil : il **lance le scan**, **interroge l'API de ZAP toutes les 5 secondes** jusqu'à la fin, puis **récupère automatiquement les alertes**. Résultat sur la vidéo : **105 alertes, 14 types uniques**, en 55 secondes. En Medium : absence de Content Security Policy, pas de protection anti-clickjacking, pas d'anti-CSRF. En Low : fuites de versions serveur. C'est directement exploitable par l'équipe sécurité du client.
 
-### Slide 16 — DÉMO 6 : Gobuster, pages cachées (~45 sec)
+### Slide 16 — DÉMO 8 : Gobuster, pages cachées (~45 sec)
 
 **Abdallah** : *[lance la vidéo de démo de la slide]*
 > Toujours en analyse web : **Gobuster**, qui débusque les pages cachées d'un site. Même cible, profil Quick. Sur la vidéo, il trouve un dossier `_vti_pvt` — une vieille interface FrontPage Microsoft, indicateur d'une configuration à patcher — ainsi que `/cgi-bin`, `/templates`, `/aspnet_client`. Chaque chemin découvert apparaît dans le rapport avec son code HTTP. Voilà nos **5 modules offensifs** démontrés. Je rends la parole à Ayoub pour la sécurité et le défensif.
@@ -129,7 +139,7 @@
 **Ayoub** : *[bascule en direct sur `https://localhost/siem`]*
 > Et justement, voici la partie qui **tourne déjà** : notre tableau de bord **SIEM**, en direct. Avant l'enregistrement, j'ai lancé plusieurs scans — le dashboard les agrège automatiquement. En haut, l'**état de la stack ELK** : Elasticsearch, Logstash, Kibana, plus MinIO, Redis et PostgreSQL, tous surveillés en temps réel. En dessous : le nombre de scans sur 24 heures, le taux de réussite, la **timeline** des scans par heure, la répartition par module et le top des cibles. Chaque action sensible est aussi indexée dans Elasticsearch et consultable dans **Kibana** — y compris une **réponse active** comme un blocage d'IP. C'est notre brique concrète de **détection et réponse**. Je passe la parole à Titouan pour le reporting.
 
-### Slide 20 — DÉMO 7 : Le rapport PDF (~1 min)
+### Slide 20 — DÉMO 9 : Le rapport PDF (~1 min)
 
 **Titouan** : *[lance la vidéo de démo de la slide]*
 > Tous les scans que mes collègues ont lancés produisent automatiquement un **rapport PDF structuré**. Sur la vidéo : page de couverture, **synthèse exécutive** en encart pour le CODIR du client, statistiques, déroulé technique par outil avec la commande exécutée et la sortie console brute, tableau de synthèse, recommandations et annexes. On a soigné la lisibilité — palette douce, blocs de code lisibles jusque sur les pages de débordement. Le tout généré en **2 secondes** depuis l'interface : c'est notre 99 % de gain sur la rédaction.

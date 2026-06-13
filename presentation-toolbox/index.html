@@ -302,11 +302,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-osint.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-01-osint.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · OSINT</div>
-                            <div class="s">Déposez <code>videos/demo-osint.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-01-osint.mp4</code></div>
                         </div>
                     </div>
                 </div>
@@ -321,9 +321,68 @@
             </div>
         </section>
 
-        <!-- 12 · DÉMO 2 · SQLMAP -->
+        <!-- 11bis · DÉMO 2 · RECON ACTIVE -->
+        <section class="slide" data-speaker="Ayoub — Démo Recon active">
+            <span class="who-tag"><svg class="ico"><use href="#i-target"/></svg> <b>Démo 2</b></span>
+            <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
+            <span class="kicker">Reconnaissance active · recon · Nmap + Whois + WhatWeb</span>
+            <h2>Cartographier la cible, <span class="accent">en quelques secondes</span></h2>
+            <p class="narration">Après l'OSINT, on touche au réseau — toujours en mode autorisé. 3 outils chaînés en un clic.</p>
+            <div class="two-col demo">
+                <div>
+                    <div class="video-slot">
+                        <video controls preload="metadata" src="videos/demo-02-recon-active.mp4"></video>
+                        <div class="vs-ph">
+                            <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
+                            <div class="t">Vidéo de démo · Recon active</div>
+                            <div class="s">Déposez <code>videos/demo-02-recon-active.mp4</code></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <ul style="margin-top:4px">
+                        <li>Cible : <code>scanme.nmap.org</code> <span style="color:var(--muted)">(serveur officiel Nmap, scans autorisés)</span></li>
+                        <li>3 outils en parallèle : <strong>Nmap</strong> (ports/services), <strong>Whois</strong> (propriétaire), <strong>WhatWeb</strong> (technos)</li>
+                        <li>Résultat : ports <strong>22 SSH</strong> + <strong>80 HTTP</strong> ouverts, <strong>Apache</strong> identifié</li>
+                    </ul>
+                    <div class="highlight frag" style="margin-top:16px"><strong>Cartographie complète</strong> consolidée dans un rapport PDF unique.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11ter · DÉMO 3 · SCAN VULN -->
+        <section class="slide" data-speaker="Titouan — Démo Scan Vuln">
+            <span class="who-tag"><svg class="ico"><use href="#i-alert"/></svg> <b>Démo 3</b></span>
+            <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
+            <span class="kicker">Scan de vulnérabilités · scan · Nikto</span>
+            <h2>De la surface au défaut concret, <span class="accent">en 30 secondes</span></h2>
+            <p class="narration">Une fois la surface identifiée, Nikto bombarde le serveur de tests ciblés. Findings actionnables directement.</p>
+            <div class="two-col demo">
+                <div>
+                    <div class="video-slot">
+                        <video controls preload="metadata" src="videos/demo-03-scan-vuln.mp4"></video>
+                        <div class="vs-ph">
+                            <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
+                            <div class="t">Vidéo de démo · Scan vuln</div>
+                            <div class="s">Déposez <code>videos/demo-03-scan-vuln.mp4</code></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <ul style="margin-top:4px">
+                        <li>Cible : <code>scanme.nmap.org:80</code></li>
+                        <li>Outil : <strong>Nikto</strong> profil Quick (~6000 requêtes HTTP)</li>
+                        <li><strong>Apache</strong> fingerprinté + plusieurs <strong>headers de sécurité manquants</strong></li>
+                        <li><code>mod_negotiation</code> activé → vecteur d'énumération identifié</li>
+                    </ul>
+                    <div class="highlight frag" style="margin-top:16px"><strong>Findings concrets, classés, actionnables</strong> par l'équipe sécu du client.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12 · DÉMO 4 · SQLMAP -->
         <section class="slide" data-speaker="Abdallah — Démo SQLmap">
-            <span class="who-tag"><svg class="ico"><use href="#i-database"/></svg> <b>Démo 2</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-database"/></svg> <b>Démo 4</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Attaque · Base de données · SQLmap</span>
             <h2>SQLmap : faire « avouer » une <span class="accent">base de données</span></h2>
@@ -332,11 +391,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-sqlmap.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-04-sqlmap.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · SQLmap</div>
-                            <div class="s">Déposez <code>videos/demo-sqlmap.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-04-sqlmap.mp4</code></div>
                         </div>
                     </div>
                 </div>
@@ -353,7 +412,7 @@
 
         <!-- 13 · DÉMO 3 · HYDRA -->
         <section class="slide" data-speaker="Ayoub — Démo Hydra">
-            <span class="who-tag"><svg class="ico"><use href="#i-key"/></svg> <b>Démo 3</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-key"/></svg> <b>Démo 5</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Attaque · Mots de passe · Hydra</span>
             <h2>Hydra : un mot de passe faible tombe en <span class="accent">1 seconde</span></h2>
@@ -362,11 +421,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-hydra.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-05-hydra.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · Hydra</div>
-                            <div class="s">Déposez <code>videos/demo-hydra.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-05-hydra.mp4</code></div>
                         </div>
                     </div>
                 </div>
@@ -384,7 +443,7 @@
 
         <!-- 14 · DÉMO 4 · JOHN -->
         <section class="slide" data-speaker="Ayoub — Démo John">
-            <span class="who-tag"><svg class="ico"><use href="#i-lock"/></svg> <b>Démo 4</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-lock"/></svg> <b>Démo 6</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Attaque · Mots de passe chiffrés · John the Ripper</span>
             <h2>John the Ripper : retrouver un mot de passe <span class="accent">chiffré</span></h2>
@@ -393,11 +452,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-john.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-06-john.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · John</div>
-                            <div class="s">Déposez <code>videos/demo-john.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-06-john.mp4</code></div>
                         </div>
                     </div>
                     <table class="t" style="margin-top:12px">
@@ -423,7 +482,7 @@
 
         <!-- 15 · DÉMO 5 · ZAP -->
         <section class="slide" data-speaker="Abdallah — Démo ZAP">
-            <span class="who-tag"><svg class="ico"><use href="#i-search"/></svg> <b>Démo 5</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-search"/></svg> <b>Démo 7</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Audit de site web · OWASP ZAP</span>
             <h2>OWASP ZAP : <span class="accent">105 alertes</span> en 55 s</h2>
@@ -437,11 +496,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-zap.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-07-zap.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · OWASP ZAP</div>
-                            <div class="s">Déposez <code>videos/demo-zap.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-07-zap.mp4</code></div>
                         </div>
                     </div>
                 </div>
@@ -459,7 +518,7 @@
 
         <!-- 16 · DÉMO 6 · GOBUSTER -->
         <section class="slide" data-speaker="Abdallah — Démo Gobuster">
-            <span class="who-tag"><svg class="ico"><use href="#i-search"/></svg> <b>Démo 6</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-search"/></svg> <b>Démo 8</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Pages cachées d'un site · Gobuster</span>
             <h2>Gobuster : trouver les <span class="accent">pages cachées</span> d'un site</h2>
@@ -468,11 +527,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-gobuster.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-08-gobuster.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · Gobuster</div>
-                            <div class="s">Déposez <code>videos/demo-gobuster.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-08-gobuster.mp4</code></div>
                         </div>
                     </div>
                 </div>
@@ -582,7 +641,7 @@
 
         <!-- 20 · DÉMO 7 · RAPPORT PDF -->
         <section class="slide" data-speaker="Titouan — Démo Rapport">
-            <span class="who-tag"><svg class="ico"><use href="#i-file-check"/></svg> <b>Démo 7</b></span>
+            <span class="who-tag"><svg class="ico"><use href="#i-file-check"/></svg> <b>Démo 9</b></span>
             <div class="demo-flag"><span class="live-dot"></span> <svg class="ico"><use href="#i-play"/></svg> Démo live à montrer</div>
             <span class="kicker">Le livrable client</span>
             <h2>Un rapport <span class="accent">prêt à envoyer</span> en 2 secondes</h2>
@@ -591,11 +650,11 @@
                 <div>
                     <div class="video-slot">
                         <!-- Vidéo prête ? Décommentez la ligne ci-dessous (fichier à placer dans videos/) : -->
-                        <!-- <video controls preload="metadata" src="videos/demo-rapport.mp4"></video> -->
+                        <video controls preload="metadata" src="videos/demo-09-rapport-pdf.mp4"></video>
                         <div class="vs-ph">
                             <div class="ring"><svg class="ico"><use href="#i-play"/></svg></div>
                             <div class="t">Vidéo de démo · Rapport PDF</div>
-                            <div class="s">Déposez <code>videos/demo-rapport.mp4</code></div>
+                            <div class="s">Déposez <code>videos/demo-09-rapport-pdf.mp4</code></div>
                         </div>
                     </div>
                 </div>
