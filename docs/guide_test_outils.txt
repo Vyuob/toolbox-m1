@@ -11,7 +11,7 @@
  MODULE 1 — RECONNAISSANCE PASSIVE (OSINT)
 ================================================================
 
-Outil unique : Google Dorks (3 categories, 18 templates)
+Outil unique : Google Dorks (3 categories, 24 templates)
 Moteurs supportes : Google, Bing, DuckDuckGo
 
 ----------------------------------------------------------------

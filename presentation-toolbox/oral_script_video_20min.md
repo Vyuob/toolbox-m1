@@ -87,7 +87,7 @@
 ### Slide 11 — DÉMO 1 : Reconnaissance passive OSINT (~1 min 15)
 
 **Titouan** : *[lance la vidéo de démo de la slide]*
-> Premier module : la **reconnaissance passive**. Sur la vidéo, je joue un pentester à qui le client demande ce qu'on peut trouver publiquement sur sa marque. Je tape simplement « etudiant » — pas besoin de domaine, le champ est libre. Je coche les catégories « Mot-clé » et « Réseaux sociaux » : on a préparé **18 dorks Google** — recherche LinkedIn, GitHub, fuites, CV, identifiants. Je clique sur Lancer, et la toolbox **ouvre automatiquement** les onglets de résultats pour chaque dork. Le rapport liste les requêtes utilisées. C'est la phase passive : **zéro paquet envoyé à la cible**, conformité RGPD garantie.
+> Premier module : la **reconnaissance passive**. Imaginons qu'un client comme **Nike** nous mandate pour un audit OSINT — qu'est-ce qu'on trouve publiquement sur leur marque, sans envoyer un seul paquet à leurs serveurs ? Je tape simplement « Nike » dans le champ cible : pas besoin de domaine, le champ est libre. Je coche les catégories **Mot-clé** et **Réseaux sociaux** : ça génère automatiquement **12 dorks Google ciblés** — des recherches de PDF, CV publics, mentions sur LinkedIn, GitHub, Twitter, Reddit, Facebook, Pastebin, mais aussi des dorks plus offensifs : recherche de **fuites** (« leaked », « breach », « dump ») et de **mentions de credentials**. Je clique Lancer, et la toolbox **ouvre automatiquement un onglet Google par dork**. Le rapport PDF liste les 12 requêtes générées. Tout est **100% passif** : zéro paquet envoyé à Nike, on interroge uniquement Google qui restitue ce qui est déjà indexé publiquement — conformité RGPD garantie.
 
 ### Slide 12 — DÉMO 2 : SQLmap, injection SQL (~1 min 15)
 

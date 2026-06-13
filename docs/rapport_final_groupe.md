@@ -104,7 +104,7 @@ Selon le cahier des charges (section II), les cinq pôles du client ont des beso
 | S5 | Refonte auth (cookie HttpOnly + split api/web) | `web_main.py`, proxy, `/login` form |
 | S6 | Passage worker → Kali Rolling + UI chips | Dockerfile.celery multi-stage, profiles, modale wordlist |
 | S7 | Rebranding ToolboxV8 + finalisation rapport v1 | Première version du présent document |
-| S8 | Module Reconnaissance passive (OSINT) | `passive_recon.py`, 18 templates de Google Dorks (Mot-clé, Réseaux sociaux, Domaine), cible en champ libre, ouverture multi-onglets |
+| S8 | Module Reconnaissance passive (OSINT) | `passive_recon.py`, 24 templates de Google Dorks (Mot-clé, Réseaux sociaux, Domaine), cible en champ libre, ouverture multi-onglets |
 | S9 | Sécurité réseau & DevOps | Caddy HTTPS reverse proxy (cert auto), CI/CD GitHub Actions + GitLab CI (lint/test/build), SSLyze pré-check TCP avec fallback IPv4/IPv6 |
 | S10 | Démos validées end-to-end + cibles vulnérables intégrées | Conteneur `pentest_target` (SSH faible pour Hydra), conteneur `pentest_zap` (daemon API), refonte `web_scan.py` (polling + récupération alertes), SQLmap dump ciblé, validations cibles assouplies, palette PDF/HTML alignée |
 
@@ -204,7 +204,7 @@ Pages (Jinja2) :
 Composants clés du frontend :
 
 - **Chips de profils** (`profileBlock` JS) pour Nikto, SSLyze, SQLmap, MSF, ZAP, Nmap NSE
-- **Catalogue de dorks** (passive_recon) : 18 templates répartis en 3 catégories (Mot-clé, Réseaux sociaux, Domaine) avec sélection multiple par checkbox + zone de dorks personnalisés `{target}`
+- **Catalogue de dorks** (passive_recon) : 24 templates répartis en 3 catégories (6 Mot-clé + 6 Réseaux sociaux + 12 Domaine) avec sélection multiple par checkbox + zone de dorks personnalisés `{target}`
 - **Modale wordlist** pour Hydra + John : 3 boutons (fichier / manuelle / rockyou.txt)
 - **Polling Celery** (3 s) pour la progression temps réel avec barre et logs
 - **Validation de cible adaptative** : validation stricte IP/domaine/URL pour les modules réseau, désactivée pour passive_recon (champ libre type "nom de personne", "marque", "sujet") et pour John the Ripper (hash)
@@ -262,7 +262,7 @@ La fonction `_build_tools_sections(result)` normalise les champs `command`, `out
 
 | Module | Outils | Profils UI |
 |--------|--------|------------|
-| **passive_recon** | Google / Bing / DuckDuckGo dorks | Catalogue 18 dorks (Mot-clé : PDF, Office, CV, leaks, credentials — Réseaux sociaux : LinkedIn, GitHub, Twitter, Reddit, Facebook, Pastebin — Domaine : pages indexées, sous-domaines, admin, login, secrets…) + dorks personnalisés |
+| **passive_recon** | Google / Bing / DuckDuckGo dorks | Catalogue 24 dorks (Mot-clé : PDF, Office, intitle, CV, leaks, credentials — Réseaux sociaux : LinkedIn, GitHub, Twitter, Reddit, Facebook, Pastebin — Domaine : pages indexées, sous-domaines, PDF, Office, configs, SQL/logs, admin, login, directory listing, secrets, emails, errors) + dorks personnalisés |
 | recon | Nmap, DNS, whois, WhatWeb | Nmap : Quick/Standard/Full TCP/Stealth |
 | scan | Nmap `--script=vuln`, Nikto, SSLyze | Nmap NSE : Quick/Standard/Full/Safe — Nikto : Quick/Standard/Full/Evasion — SSLyze : Cert/Standard/Full (avec pré-check TCP IPv4/IPv6 + détection cible sans HTTPS) |
 | exploit | SQLmap, Hydra, John jumbo, Metasploit | SQLmap : Quick/Standard/Aggressive/Dump — MSF : Handler/EternalBlue/PortScan/SMB |
@@ -352,7 +352,7 @@ Nouvel endpoint `POST /api/modules/wordlist` (multipart). Fichier stocké dans u
 | SSLyze Standard | badssl.com:443 | Audit TLS complet : certificat, chaîne, toutes versions TLS, cipher suites, headers de sécurité |
 | Nmap NSE Quick | scanme.nmap.org | Détection ports + scripts vuln (port 22 SSH, port 80 HTTP, port 443 filtré) |
 | Nikto Quick | scanme.nmap.org:80 | Apache 2.4.7 fingerprinté + 9 findings (headers manquants, mod_negotiation, etc.) |
-| passive_recon | "etudiant" + "League of Legends" | 18 dorks générés sur 3 catégories (Mot-clé / Réseaux sociaux / Domaine), ouverture multi-onglets fonctionnelle |
+| passive_recon | "Nike" (test cible marque) | 12 dorks générés en cochant Mot-clé + Réseaux sociaux (catalogue total : 24 templates dans 3 catégories), ouverture multi-onglets fonctionnelle |
 
 ✅ **Couverture : 5 modules sur 5 démontrés avec des rapports PDF produits**.
 

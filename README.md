@@ -86,7 +86,7 @@ ELK (Elasticsearch + Logstash + Kibana)   MinIO (rapports S3)
 
 | Module | Outils intégrés | Type |
 |--------|-----------------|------|
-| **passive_recon** | Google / Bing / DuckDuckGo Dorks (18 templates en 3 catégories : Mot-clé, Réseaux sociaux, Domaine) | Offensif (OSINT) |
+| **passive_recon** | Google / Bing / DuckDuckGo Dorks (24 templates en 3 catégories : Mot-clé, Réseaux sociaux, Domaine) | Offensif (OSINT) |
 | **recon** | Nmap, DNS (résolution), whois, WhatWeb | Offensif |
 | **scan** | Nmap NSE (`--script=vuln`), Nikto, SSLyze (avec pré-check TCP IPv4/IPv6) | Offensif |
 | **exploit** | SQLmap, Hydra, John the Ripper (jumbo, 304 formats), Metasploit (\*) | Offensif |
@@ -116,7 +116,7 @@ Chaque outil expose des **profils par chips** (Quick / Standard / Full / …) qu
 
 ### UX
 - **Profils chips** sur tous les outils — Nmap NSE (Quick/Standard/Full/Safe), Nikto (Quick/Standard/Full/Evasion), SSLyze (Cert/Standard/Full), SQLmap (Quick/Standard/Aggressive/Dump), ZAP (Spider/Active × Quick/Standard/Full), Gobuster (Quick/Standard/Full)
-- **Catalogue de dorks** (passive_recon) : 18 templates à cocher + dorks personnalisés, ouverture multi-onglets
+- **Catalogue de dorks** (passive_recon) : 24 templates à cocher + dorks personnalisés, ouverture multi-onglets
 - **Toggles indépendants** dans Scan et Web/API — chaque outil activable séparément, les désactivés sont masqués du rapport
 - **Validation cible adaptative** : stricte pour les modules réseau, libre pour passive_recon / Hydra / John (champs avec hostnames Docker, hashes, mots-clés OSINT acceptés)
 - **Timeouts adaptés par profil** — Nikto (10/15/30/60 min), SQLmap (5/10/15/30 min), ZAP polling jusqu'à 8 min
