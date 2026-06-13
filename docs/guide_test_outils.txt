@@ -115,9 +115,10 @@ NOTE   : Metasploit non operationnel (cf. limites rapport §10.2)
   Outil           : SQLmap — Injection SQL
   Profil          : Quick
 
-  Resultat : 3 types d'injection detectes (boolean, time-based,
-             stacked), MSSQL 2014 + IIS 8.5 identifies
-  Temps     : ~5 min
+  Resultat : 2 a 3 types d'injection detectes selon la session
+             (boolean-based, time-based heavy query, stacked queries
+             si disponible), MSSQL 2014 + IIS 8.5 identifies
+  Temps     : 5-15 min (testasp.vulnweb.com peut etre lent)
 
 
 ----------------------------------------------------------------

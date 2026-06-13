@@ -92,7 +92,7 @@
 ### Slide 12 — DÉMO 2 : SQLmap, injection SQL (~1 min 15)
 
 **Abdallah** : *[lance la vidéo de démo de la slide]*
-> On passe à l'**exploitation**. Cible légalement autorisée : `testasp.vulnweb.com`, un site volontairement vulnérable d'Acunetix. Outil : **SQLmap**, profil Quick. Pendant que ça tourne, un mot sur la sécurité de l'outil : **tous les scans sont tracés** dans une table d'audit. Si le client a un contrôle, on produit la liste exhaustive des scans, qui les a lancés et sur quelle cible. Le résultat : **3 types d'injection détectés** — boolean-based, time-based, stacked queries. Base de données identifiée : Microsoft SQL Server 2014. Stack web : IIS, ASP.NET, Django. Le tout exporté en un clic.
+> On passe à l'**exploitation**. Cible légalement autorisée : `testasp.vulnweb.com`, un site volontairement vulnérable d'Acunetix. Outil : **SQLmap**, profil Quick. Pendant que ça tourne, un mot sur la sécurité de l'outil : **tous les scans sont tracés** dans une table d'audit. Si le client a un contrôle, on produit la liste exhaustive des scans, qui les a lancés et sur quelle cible. Résultat : SQLmap confirme la vulnérabilité avec **deux types d'injection** — boolean-based blind et time-based blind. Base de données identifiée : **Microsoft SQL Server 2014**. Stack web : **ASP, ASP.NET, IIS 8.5**. Le tout exporté en PDF en un clic.
 
 ### Slide 13 — DÉMO 3 : Hydra, brute-force SSH (~1 min)
 

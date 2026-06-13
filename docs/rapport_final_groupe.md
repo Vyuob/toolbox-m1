@@ -342,7 +342,7 @@ Nouvel endpoint `POST /api/modules/wordlist` (multipart). Fichier stocké dans u
 
 | Test | Cible | Résultat mesuré |
 |------|-------|-----------------|
-| SQLmap Quick | testasp.vulnweb.com/showforum.asp?id=0 | **3 types d'injection** détectés (boolean-based blind, stacked queries, time-based blind), MSSQL 2014 + IIS 8.5 fingerprintés en ~5 min |
+| SQLmap Quick | testasp.vulnweb.com/showforum.asp?id=0 | **2 à 3 types d'injection** confirmés selon la session (boolean-based blind systématiquement + time-based blind heavy query, stacked queries selon disponibilité de la cible), MSSQL 2014 + IIS 8.5 + ASP/ASP.NET fingerprintés |
 | SQLmap Dump | même cible | Énumération de **7 bases de données** (acufo, acuse, master, model, msdb, tempd) + tentatives sur 8 tables sensibles |
 | Hydra SSH | `pentest_target:2222` | **Cracké `pentest_user:toor` en 1 seconde** avec wordlist 5 mots |
 | John MD5 | hash `21232f297a57a5a743894a0e4a801fc3` | **Cracké "admin" en 0 seconde** (format raw-md5, wordlist 5 mots) |
