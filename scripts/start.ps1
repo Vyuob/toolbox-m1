@@ -137,7 +137,7 @@ public class TrustAllCertsPolicy : ICertificatePolicy {
 function Create-Admin {
     Log "Verification du compte admin..."
     try {
-        $body = "username=admin&password=admin"
+        $body = "username=admin&password=admin123"
         $null = Invoke-WebRequest -Uri "http://localhost:8000/api/auth/token" `
             -Method POST `
             -ContentType "application/x-www-form-urlencoded" `
@@ -152,7 +152,7 @@ function Create-Admin {
             $adminData = @{
                 username = "admin"
                 email    = "admin@pentestbox.com"
-                password = "admin"
+                password = "admin123"
                 role     = "admin"
             } | ConvertTo-Json
             $null = Invoke-WebRequest -Uri "http://localhost:8000/api/auth/register" `
@@ -162,7 +162,7 @@ function Create-Admin {
                 -UseBasicParsing `
                 -TimeoutSec 5 `
                 -ErrorAction SilentlyContinue
-            Ok "Compte admin cree (admin / admin)."
+            Ok "Compte admin cree (admin / admin123)."
         } catch {
             Warn "Impossible de creer le compte admin (deja existant ?)."
         }
@@ -205,7 +205,7 @@ function Start-Stack {
         Write-Host "  MinIO         : " -NoNewline -ForegroundColor White
         Write-Host "http://localhost:9001" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "  Login         : admin / admin" -ForegroundColor Yellow
+        Write-Host "  Login         : admin / admin123" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "  Commandes utiles :" -ForegroundColor DarkGray
         Write-Host "    .\scripts\start.ps1 -Mode stop" -ForegroundColor DarkGray

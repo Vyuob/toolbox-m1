@@ -26,7 +26,7 @@ cp .env.example .env
 open https://localhost/login
 ```
 
-Identifiants par défaut seedés : **`admin` / `admin`**.
+Identifiants par défaut seedés : **`admin` / `admin123`**.
 
 > 💡 **HTTPS local** : Caddy génère un certificat auto-signé via sa CA interne.
 > Pour éviter le warning navigateur, importer la CA une seule fois :
@@ -110,7 +110,7 @@ Chaque outil expose des **profils par chips** (Quick / Standard / Full / …) qu
 - **HTTPS** via reverse proxy Caddy (CA interne en dev, Let's Encrypt en prod)
 - **Auth par formulaire web** + cookie HttpOnly (JWT signé côté backend) ; `POST /api/auth/token` reste utilisable pour les clients externes
 - **RBAC** à 3 rôles : `admin`, `analyst`, `reader`
-- **Création auto du compte admin** (`admin` / `admin`) au premier démarrage
+- **Création auto du compte admin** (`admin` / `admin123`) au premier démarrage
 - **Chiffrement Fernet** pour les secrets stockés
 - **Audit logs** : login, lancement de scan, génération de rapport, blocage IP — table append-only PostgreSQL
 

@@ -486,7 +486,7 @@ Synthèse des règles applicables au système ToolboxV8, formalisées pour répo
 | Algorithme de stockage | **bcrypt** (salage intégré, coût par défaut 12) |
 | Longueur minimale (à l'inscription) | 8 caractères |
 | Mots de passe en clair | **Jamais** stockés, **jamais** loggés (les mots de passe ne sont jamais sérialisés dans `AuditLog`) |
-| Rotation admin | Recommandée tous les 90 jours en production (mot de passe par défaut `admin/admin` à changer dès le 1er login) |
+| Rotation admin | Recommandée tous les 90 jours en production (mot de passe par défaut `admin/admin123` à changer dès le 1er login) |
 
 #### 7.7.2 Politique d'authentification & session
 

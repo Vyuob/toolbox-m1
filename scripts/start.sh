@@ -3,7 +3,7 @@
 # start.sh – Lance la stack ToolboxV8 complète via Docker
 # Usage : ./scripts/start.sh [--dev | --prod | --stop | --logs | --status | --version]
 #
-# Le compte admin (admin / admin) est créé automatiquement après
+# Le compte admin (admin / admin123) est créé automatiquement après
 # démarrage si absent (voir ensure_admin plus bas).
 # ============================================================
 
@@ -100,7 +100,7 @@ ensure_admin() {
   login_resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "http://localhost:8000/api/auth/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    --data-urlencode "username=admin" --data-urlencode "password=admin" || echo "000")
+    --data-urlencode "username=admin" --data-urlencode "password=admin123" || echo "000")
   if [[ "$login_resp" == "200" ]]; then
     ok "Compte admin déjà existant."
     return
@@ -111,14 +111,14 @@ ensure_admin() {
   register_resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "http://localhost:8000/api/auth/register" \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","email":"admin@pentestbox.com","password":"admin","role":"admin"}' || echo "000")
+    -d '{"username":"admin","email":"admin@pentestbox.com","password":"admin123","role":"admin"}' || echo "000")
   if [[ "$register_resp" == "201" || "$register_resp" == "200" ]]; then
-    ok "Compte admin créé (admin / admin)."
+    ok "Compte admin créé (admin / admin123)."
   else
     warn "Création du compte admin impossible (HTTP $register_resp) — peut-être déjà existant avec un autre mot de passe."
   fi
   echo ""
-  echo -e "  ${YELLOW}Login${NC}         : admin / admin"
+  echo -e "  ${YELLOW}Login${NC}         : admin / admin123"
   echo ""
 }
 
