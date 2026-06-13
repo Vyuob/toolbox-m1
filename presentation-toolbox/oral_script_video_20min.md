@@ -97,7 +97,7 @@
 ### Slide 11 ter — DÉMO 3 : Scan de vulnérabilités (~45 sec)
 
 **Titouan** : *[lance la vidéo de démo de la slide]*
-> Une fois la surface identifiée, on passe au **scan de vulnérabilités**. Même cible scanme.nmap.org, port 80. J'active **Nikto** en profil Quick et je désactive SSLyze — scanme n'a pas de HTTPS donc pas besoin d'audit TLS. Nikto bombarde le serveur d'environ **6000 requêtes** de tests : recherche de fichiers exposés, headers de sécurité manquants, anciennes versions exploitables. Résultat : **Apache fingerprinté**, plusieurs **headers de sécurité manquants** (X-Content-Type-Options, Strict-Transport-Security), `mod_negotiation` activé — un vecteur d'énumération connu. C'est exactement ce qu'un audit client doit produire : des findings concrets, classés et directement actionnables par l'équipe sécurité.
+> Une fois la surface identifiée, on passe au **scan de vulnérabilités**. Même cible scanme.nmap.org, port 80. J'active **Nikto** en profil Quick et je désactive SSLyze — scanme n'a pas de HTTPS donc pas besoin d'audit TLS. Nikto bombarde le serveur de **plusieurs milliers de requêtes** de tests : recherche de fichiers exposés, headers de sécurité manquants, anciennes versions exploitables. Résultat : **Apache fingerprinté**, plusieurs **headers de sécurité manquants** (X-Content-Type-Options, Strict-Transport-Security), `mod_negotiation` activé — un vecteur d'énumération connu. C'est exactement ce qu'un audit client doit produire : des findings concrets, classés et directement actionnables par l'équipe sécurité.
 
 ### Slide 12 — DÉMO 4 : SQLmap, injection SQL (~1 min 15)
 
