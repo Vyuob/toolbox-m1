@@ -116,18 +116,3 @@ La table est en append-only (aucun endpoint d'update ni de delete), avec horodat
 - Les résultats doivent être traités comme **confidentiels**
 - Interdiction d'utilisation sur des systèmes non autorisés
 
----
-
-## 7. Recommandations pour la production
-
-- [x] **HTTPS activé** (Caddy avec CA interne en dev, Let's Encrypt en prod via modification du `Caddyfile`)
-- [x] **RBAC à 3 rôles** opérationnel avec page de gestion des utilisateurs
-- [x] **Audit log** sur les actions sensibles (auth, scans, rapports, gestion utilisateurs)
-- [ ] Remplacer les mots de passe par défaut (`admin123`, `analyst123`, `reader123`) avant la mise en production
-- [ ] Changer les mots de passe par défaut des services (PostgreSQL, MinIO, Kibana)
-- [ ] Utiliser HashiCorp Vault pour les secrets
-- [ ] Activer l'authentification Elasticsearch (`xpack.security.enabled: true`)
-- [ ] Configurer les sauvegardes PostgreSQL (pg_dump) + MinIO
-- [ ] Mettre en place un WAF devant l'API
-- [ ] Activer le rate limiting sur les endpoints d'auth
-- [ ] Scanner régulièrement les dépendances Python (`pip-audit`)
