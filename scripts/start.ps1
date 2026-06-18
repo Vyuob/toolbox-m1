@@ -134,10 +134,16 @@ public class TrustAllCertsPolicy : ICertificatePolicy {
     return $false
 }
 
-function Create-Admin {
-    Log "Verification du compte admin..."
+function Create-User {
+    param(
+        [string]$Username,
+        [string]$Password,
+        [string]$Email,
+        [string]$Role
+    )
+    # Tente de se connecter d'abord ; si echec, cree le compte.
     try {
-        $body = "username=admin&password=admin123"
+        $body = "username=$Username&password=$Password"
         $null = Invoke-WebRequest -Uri "http://localhost:8000/api/auth/token" `
             -Method POST `
             -ContentType "application/x-www-form-urlencoded" `
@@ -145,28 +151,34 @@ function Create-Admin {
             -UseBasicParsing `
             -TimeoutSec 5 `
             -ErrorAction SilentlyContinue
-        Ok "Compte admin existant."
+        Ok "Compte '$Username' existant."
     } catch {
-        Log "Creation du compte admin..."
         try {
-            $adminData = @{
-                username = "admin"
-                email    = "admin@pentestbox.com"
-                password = "admin123"
-                role     = "admin"
+            $data = @{
+                username = $Username
+                email    = $Email
+                password = $Password
+                role     = $Role
             } | ConvertTo-Json
             $null = Invoke-WebRequest -Uri "http://localhost:8000/api/auth/register" `
                 -Method POST `
                 -ContentType "application/json" `
-                -Body $adminData `
+                -Body $data `
                 -UseBasicParsing `
                 -TimeoutSec 5 `
                 -ErrorAction SilentlyContinue
-            Ok "Compte admin cree (admin / admin123)."
+            Ok "Compte '$Username' cree ($Role)."
         } catch {
-            Warn "Impossible de creer le compte admin (deja existant ?)."
+            Warn "Impossible de creer le compte '$Username' (deja existant avec un autre mdp ?)."
         }
     }
+}
+
+function Create-Admin {
+    Log "Verification / creation des 3 comptes par defaut (RBAC)..."
+    Create-User -Username "admin"   -Password "admin123"   -Email "admin@toolboxv8.fr"   -Role "admin"
+    Create-User -Username "analyst" -Password "analyst123" -Email "analyst@toolboxv8.fr" -Role "analyst"
+    Create-User -Username "reader"  -Password "reader123"  -Email "reader@toolboxv8.fr"  -Role "reader"
 }
 
 function Start-Stack {
@@ -205,7 +217,10 @@ function Start-Stack {
         Write-Host "  MinIO         : " -NoNewline -ForegroundColor White
         Write-Host "http://localhost:9001" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "  Login         : admin / admin123" -ForegroundColor Yellow
+        Write-Host "  Comptes seedes (RBAC):" -ForegroundColor Yellow
+        Write-Host "    admin   / admin123   (admin   - tout faire)" -ForegroundColor Yellow
+        Write-Host "    analyst / analyst123 (analyst - lancer scans)" -ForegroundColor Yellow
+        Write-Host "    reader  / reader123  (reader  - lecture seule)" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "  Commandes utiles :" -ForegroundColor DarkGray
         Write-Host "    .\scripts\start.ps1 -Mode stop" -ForegroundColor DarkGray

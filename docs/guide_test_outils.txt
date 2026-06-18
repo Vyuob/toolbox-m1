@@ -8,6 +8,18 @@
 
 
 ================================================================
+ COMPTES PAR DEFAUT (RBAC, seedes automatiquement au demarrage)
+================================================================
+
+ admin   / admin123    (role admin   - tout faire, gestion utilisateurs)
+ analyst / analyst123  (role analyst - lancer scans, voir rapports)
+ reader  / reader123   (role reader  - lecture seule)
+
+ Page /admin/users (admin uniquement) pour creer / modifier / desactiver
+ / supprimer des utilisateurs depuis l'interface web.
+
+
+================================================================
  MODULE 1 — RECONNAISSANCE PASSIVE (OSINT)
 ================================================================
 

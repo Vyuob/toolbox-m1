@@ -93,32 +93,46 @@ start() {
   fi
 }
 
-# ---- Création automatique du compte admin (si absent) ----
-ensure_admin() {
-  log "Vérification du compte admin..."
+# ---- Création automatique d'un compte (helper interne) ----
+ensure_user() {
+  local user="$1"
+  local pass="$2"
+  local email="$3"
+  local role="$4"
+
   local login_resp
   login_resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "http://localhost:8000/api/auth/token" \
     -H "Content-Type: application/x-www-form-urlencoded" \
-    --data-urlencode "username=admin" --data-urlencode "password=admin123" || echo "000")
+    --data-urlencode "username=$user" --data-urlencode "password=$pass" || echo "000")
   if [[ "$login_resp" == "200" ]]; then
-    ok "Compte admin déjà existant."
+    ok "Compte '$user' déjà existant."
     return
   fi
 
-  log "Création du compte admin..."
   local register_resp
   register_resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
     "http://localhost:8000/api/auth/register" \
     -H "Content-Type: application/json" \
-    -d '{"username":"admin","email":"admin@pentestbox.com","password":"admin123","role":"admin"}' || echo "000")
+    -d "{\"username\":\"$user\",\"email\":\"$email\",\"password\":\"$pass\",\"role\":\"$role\"}" || echo "000")
   if [[ "$register_resp" == "201" || "$register_resp" == "200" ]]; then
-    ok "Compte admin créé (admin / admin123)."
+    ok "Compte '$user' créé ($role)."
   else
-    warn "Création du compte admin impossible (HTTP $register_resp) — peut-être déjà existant avec un autre mot de passe."
+    warn "Création du compte '$user' impossible (HTTP $register_resp)."
   fi
+}
+
+# ---- Création automatique des 3 comptes par défaut (RBAC) ----
+ensure_admin() {
+  log "Vérification / création des 3 comptes par défaut (RBAC)..."
+  ensure_user "admin"   "admin123"   "admin@toolboxv8.fr"   "admin"
+  ensure_user "analyst" "analyst123" "analyst@toolboxv8.fr" "analyst"
+  ensure_user "reader"  "reader123"  "reader@toolboxv8.fr"  "reader"
   echo ""
-  echo -e "  ${YELLOW}Login${NC}         : admin / admin123"
+  echo -e "  ${YELLOW}Comptes seedés (RBAC)${NC} :"
+  echo -e "    admin   / admin123   ${YELLOW}(admin   — tout faire)${NC}"
+  echo -e "    analyst / analyst123 ${YELLOW}(analyst — lancer scans)${NC}"
+  echo -e "    reader  / reader123  ${YELLOW}(reader  — lecture seule)${NC}"
   echo ""
 }
 

@@ -48,6 +48,10 @@ docker/volumes/
 /tmp/reports/
 *.pdf
 *.html.bak
+# Exception : les rapports finaux pédagogiques (rendus officiels) sont commités
+!docs/PE-2526_*.pdf
+# Exception : PDFs officiels du sujet école (cadre + cahier des charges)
+!Sujet/*.pdf
 
 # ---- Logs ----
 *.log

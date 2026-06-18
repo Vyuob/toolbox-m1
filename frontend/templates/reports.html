@@ -17,10 +17,15 @@
   <nav class="sidebar-nav">
     <div class="nav-section-label">Navigation</div>
     <a href="/dashboard" class="nav-item"><span class="nav-icon"><i data-lucide="layout-dashboard"></i></span> Dashboard</a>
-    <a href="/modules" class="nav-item"><span class="nav-icon"><i data-lucide="wrench"></i></span> Modules</a>
+    <a href="/modules" class="nav-item nav-not-reader"><span class="nav-icon"><i data-lucide="wrench"></i></span> Modules</a>
     <a href="/reports" class="nav-item active"><span class="nav-icon"><i data-lucide="file-text"></i></span> Rapports</a>
-    <div class="nav-section-label" style="margin-top:16px">Défensif</div>
-    <a href="/siem" class="nav-item"><span class="nav-icon"><i data-lucide="radar"></i></span> SIEM</a>
+    <div class="nav-section-label nav-admin-only" style="margin-top:16px;display:none">Défensif</div>
+    <a href="/siem" class="nav-item nav-admin-only" style="display:none"><span class="nav-icon"><i data-lucide="radar"></i></span> SIEM</a>
+
+    <div class="nav-section-label nav-admin-only" style="margin-top:16px;display:none">Administration</div>
+    <a href="/admin/users" class="nav-item nav-admin-only" style="display:none">
+      <span class="nav-icon"><i data-lucide="users"></i></span> Utilisateurs
+    </a>
   </nav>
   <div class="sidebar-footer">
     <div class="user-info">

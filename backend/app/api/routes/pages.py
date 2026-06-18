@@ -112,6 +112,9 @@ def modules_page(request: Request):
     guard = _guard(request)
     if isinstance(guard, RedirectResponse):
         return guard
+    # Reader : accès refusé à Modules (lecture seule = pas de lancement de scans)
+    if guard.get("role") == "reader":
+        return RedirectResponse(url="/dashboard", status_code=303)
     return templates.TemplateResponse("modules.html", {"request": request, "user": guard})
 
 
@@ -128,4 +131,24 @@ def siem_page(request: Request):
     guard = _guard(request)
     if isinstance(guard, RedirectResponse):
         return guard
+    # SIEM : admin uniquement (analyst et reader redirigés vers /dashboard)
+    if guard.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=303)
     return templates.TemplateResponse("siem.html", {"request": request, "user": guard})
+
+
+@router.get("/admin/users", response_class=HTMLResponse, include_in_schema=False)
+def admin_users_page(request: Request):
+    """Page de gestion des utilisateurs (admin uniquement).
+
+    L'accès est garde par la route, mais la verification stricte du role
+    se fait cote API : si un non-admin tente d'utiliser les endpoints
+    /api/users/, ils renverront 403.
+    """
+    guard = _guard(request)
+    if isinstance(guard, RedirectResponse):
+        return guard
+    if guard.get("role") != "admin":
+        # Non-admin : redirige vers le dashboard
+        return RedirectResponse(url="/dashboard", status_code=303)
+    return templates.TemplateResponse("admin_users.html", {"request": request, "user": guard})

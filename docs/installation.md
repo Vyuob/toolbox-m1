@@ -73,7 +73,15 @@ Volumes Docker persistés :
 
 ### 5. Créer le premier administrateur
 
-> **Note** : si tu as démarré la stack avec `scripts/start.sh` ou `scripts/start.ps1`, le compte admin est créé automatiquement — tu peux sauter cette étape et te connecter directement avec `admin` / `admin123`.
+> **Note** : si tu as démarré la stack avec `scripts/start.sh` ou `scripts/start.ps1`, les **3 comptes par défaut** sont créés automatiquement :
+>
+> | Compte | Mot de passe | Rôle |
+> |---|---|---|
+> | `admin`   | `admin123`   | admin (tout faire, gestion utilisateurs) |
+> | `analyst` | `analyst123` | analyst (lancer scans) |
+> | `reader`  | `reader123`  | reader (lecture seule) |
+>
+> Tu peux sauter l'étape ci-dessous et te connecter directement.
 
 Sinon, crée-le manuellement :
 

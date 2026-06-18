@@ -26,6 +26,21 @@ async function loadUserInfo() {
   if (el) el.textContent = initials;
   if (nameEl) nameEl.textContent = data.username;
   if (roleEl) roleEl.textContent = data.role;
+
+  // Révèle les éléments de menu réservés à l'admin (section Administration)
+  if (data.role === 'admin') {
+    document.querySelectorAll('.nav-admin-only').forEach(el => {
+      el.style.display = '';
+    });
+  }
+
+  // Le rôle 'reader' ne voit que Dashboard + Rapports
+  // → on masque tous les liens marqués 'nav-not-reader' (Modules, SIEM, etc.)
+  if (data.role === 'reader') {
+    document.querySelectorAll('.nav-not-reader').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
 }
 
 // ── API fetch ────────────────────────────────────────────

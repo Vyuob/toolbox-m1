@@ -26,7 +26,13 @@ cp .env.example .env
 open https://localhost/login
 ```
 
-Identifiants par défaut seedés : **`admin` / `admin123`**.
+Comptes par défaut seedés automatiquement (RBAC à 3 rôles) :
+
+| Compte | Mot de passe | Rôle | Permissions |
+|---|---|---|---|
+| `admin`   | `admin123`   | admin   | Tout — lance les scans, génère les rapports, **gère les utilisateurs** (page `/admin/users`) |
+| `analyst` | `analyst123` | analyst | Lance les scans, consulte et génère les rapports |
+| `reader`  | `reader123`  | reader  | Consultation seule des rapports et logs |
 
 > 💡 **HTTPS local** : Caddy génère un certificat auto-signé via sa CA interne.
 > Pour éviter le warning navigateur, importer la CA une seule fois :
@@ -110,7 +116,8 @@ Chaque outil expose des **profils par chips** (Quick / Standard / Full / …) qu
 - **HTTPS** via reverse proxy Caddy (CA interne en dev, Let's Encrypt en prod)
 - **Auth par formulaire web** + cookie HttpOnly (JWT signé côté backend) ; `POST /api/auth/token` reste utilisable pour les clients externes
 - **RBAC** à 3 rôles : `admin`, `analyst`, `reader`
-- **Création auto du compte admin** (`admin` / `admin123`) au premier démarrage
+- **Création auto des 3 comptes** (`admin` / `analyst` / `reader`) au premier démarrage
+- **Page de gestion des utilisateurs** `/admin/users` (admin uniquement) — créer, modifier le rôle, désactiver, supprimer
 - **Chiffrement Fernet** pour les secrets stockés
 - **Audit logs** : login, lancement de scan, génération de rapport, blocage IP — table append-only PostgreSQL
 
@@ -165,7 +172,7 @@ Chaque outil expose des **profils par chips** (Quick / Standard / Full / …) qu
 
 Dossier [docs/](docs/README.md) :
 
-- [Rapport final groupe](docs/rapport_final_groupe.md) — **document technique principal** (architecture, modules, KPIs, REX, politiques de sécurité, conclusion)
+- [Rapport final groupe (PDF)](docs/PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf) — **document technique principal** (architecture, modules, KPIs, REX, politiques de sécurité, conclusion)
 - [Guide de test des outils](docs/guide_test_outils.txt) — **configs validées** pour chaque outil (cibles, profils, résultats attendus)
 - [Architecture](docs/architecture.md) — split api/web, flux d'auth, orchestration Celery
 - [Installation](docs/installation.md) — prérequis, `.env`, commandes Docker

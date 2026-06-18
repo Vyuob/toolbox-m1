@@ -10,9 +10,11 @@ Ces deux documents sont la **source de vérité** sur l'état réel du projet :
 
 | Document | Description |
 |----------|-------------|
-| 📘 **[rapport_final_groupe.md](rapport_final_groupe.md)** | Rapport technique complet : architecture, modules, KPIs réels, REX, politiques de sécurité, conclusion. **Document principal à lire.** |
+| 📘 **[Rapport final de groupe (PDF)](PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf)** | Rapport technique complet : architecture, modules, KPIs réels, REX, politiques de sécurité, conclusion. **Document principal à lire.** |
 | 📋 **[guide_test_outils.txt](guide_test_outils.txt)** | Guide pratique : configs validées pour chaque outil avec cibles, profils et résultats attendus. **Pour reproduire les démos.** |
-| 📝 [rapport_individuel_template.md](rapport_individuel_template.md) | Template pour les rapports individuels |
+| 📝 [Rendu individuel — Titouan (PDF)](PE-2526_M1CSD_AKA-A-MFOULA_Titouan.pdf) | Analyse personnelle, perspectives, compétences développées |
+| 📝 [Rendu individuel — Ayoub (PDF)](PE-2526_M1CSD_BEN-RACHED_Ayoub.pdf) | Analyse personnelle, perspectives, compétences développées |
+| 📝 [Rendu individuel — Abdallah (PDF)](PE-2526_M1CSD_NASR_Abdallah.pdf) | Analyse personnelle, perspectives, compétences développées |
 
 ---
 
@@ -30,7 +32,7 @@ Ces documents sont des **références techniques pointues** sur des aspects pré
 | [securite.md](securite.md) | Authentification, RBAC, chiffrement, conformité | ⚠️ Snapshot — HTTPS Caddy non décrit |
 | [livrables.md](livrables.md) | Livrables pédagogiques et correspondance cadre | ⚠️ Snapshot |
 
-> 💡 **Pour le détail à jour**, voir [rapport_final_groupe.md](rapport_final_groupe.md) :
+> 💡 **Pour le détail à jour**, voir [le rapport final de groupe (PDF)](PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf) :
 > - §1.4 équipe — §3.2 sprints (S1→S10) — §4 solution technique
 > - §5 modules pentest (5 offensifs + 4 défensifs) — §6 KPIs réels mesurés
 > - §7 sécurité (incluant §7.6 Caddy HTTPS et §7.7 politiques) — §8 SIEM
