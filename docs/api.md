@@ -1,4 +1,4 @@
-# Référence API REST – ToolboxV8
+# Référence API REST - ToolboxV8
 
 > Documentation Swagger interactive : `http://localhost:8000/api/docs`
 
@@ -25,8 +25,10 @@ Obtenir un token JWT.
 **Body** (form-data) :
 ```
 username=admin
-password=Admin1234!
+password=admin123
 ```
+
+> Les 3 comptes par défaut seedés au démarrage : `admin/admin123`, `analyst/analyst123`, `reader/reader123`. Ils doivent être changés avant toute mise en production.
 
 **Réponse 200** :
 ```json
@@ -36,13 +38,13 @@ password=Admin1234!
 ---
 
 ### POST `/api/auth/register`
-Créer un compte utilisateur.
+Créer un compte utilisateur. Ouvert par défaut (peut être restreint en production).
 
 **Body** (JSON) :
 ```json
 {
   "username": "alice",
-  "email": "alice@pentest.local",
+  "email": "alice@toolboxv8.fr",
   "password": "SecurePass1!",
   "role": "analyst"
 }
@@ -50,7 +52,7 @@ Créer un compte utilisateur.
 
 **Réponse 201** :
 ```json
-{"id": 2, "username": "alice", "email": "alice@pentest.local", "role": "analyst", "is_active": true}
+{"id": 4, "username": "alice", "email": "alice@toolboxv8.fr", "role": "analyst", "is_active": true}
 ```
 
 ---
@@ -60,8 +62,68 @@ Profil de l'utilisateur connecté.
 
 **Réponse 200** :
 ```json
-{"id": 1, "username": "admin", "email": "admin@pentest.local", "role": "admin", "is_active": true}
+{"id": 1, "username": "admin", "email": "admin@toolboxv8.fr", "role": "admin", "is_active": true}
 ```
+
+---
+
+## Utilisateurs `/api/users` (admin uniquement)
+
+Endpoints de gestion des comptes accessibles uniquement avec le rôle `admin`. Toutes les actions sont tracées dans `audit_logs`.
+
+### GET `/api/users/`
+Lister tous les comptes.
+
+**Réponse 200** :
+```json
+[
+  {"id": 1, "username": "admin", "email": "admin@toolboxv8.fr", "role": "admin", "is_active": true},
+  {"id": 2, "username": "analyst", "email": "analyst@toolboxv8.fr", "role": "analyst", "is_active": true},
+  {"id": 3, "username": "reader", "email": "reader@toolboxv8.fr", "role": "reader", "is_active": true}
+]
+```
+
+---
+
+### POST `/api/users/`
+Créer un compte.
+
+**Body** (JSON) :
+```json
+{
+  "username": "bob",
+  "email": "bob@toolboxv8.fr",
+  "password": "BobSecure1!",
+  "role": "analyst"
+}
+```
+
+**Réponse 201** : objet utilisateur (sans le mot de passe).
+
+---
+
+### PATCH `/api/users/{id}`
+Modifier le rôle, le mot de passe ou l'état d'un compte.
+
+**Body** (JSON, tous les champs optionnels) :
+```json
+{
+  "role": "reader",
+  "password": "NouveauMdp2!",
+  "is_active": false
+}
+```
+
+**Garde-fous** : un admin ne peut pas se rétrograder ni se désactiver lui-même (renvoie `400`).
+
+---
+
+### DELETE `/api/users/{id}`
+Supprimer un compte.
+
+**Garde-fou** : un admin ne peut pas se supprimer lui-même (renvoie `400`).
+
+**Réponse 204** : aucun contenu.
 
 ---
 
@@ -74,10 +136,12 @@ Lister les modules disponibles.
 ```json
 {
   "modules": [
-    {"name": "recon",    "description": "Reconnaissance OSINT & Nmap"},
-    {"name": "scan",     "description": "Scan de vulnérabilités"},
-    {"name": "exploit",  "description": "Exploitation"},
-    {"name": "web_scan", "description": "Analyse Web/API"}
+    {"name": "passive_recon", "description": "Reconnaissance OSINT par dorks Google/Bing/DuckDuckGo"},
+    {"name": "recon",         "description": "Reconnaissance active (Nmap, DNS, whois, WhatWeb)"},
+    {"name": "scan",          "description": "Scan de vulnérabilités (Nmap NSE, Nikto, SSLyze)"},
+    {"name": "exploit",       "description": "Exploitation (SQLmap, Hydra, John, Metasploit)"},
+    {"name": "web_scan",      "description": "Analyse Web/API (OWASP ZAP, Gobuster, Dependency-Check)"},
+    {"name": "response",      "description": "Réponse active défensive (blocage IP, alertes SIEM)"}
   ]
 }
 ```
@@ -113,7 +177,7 @@ Lancer un module. Rôle requis : `analyst` ou `admin`.
 ---
 
 ### GET `/api/modules/jobs`
-Lister ses jobs.
+Lister ses jobs (admin voit tous les jobs).
 
 ### GET `/api/modules/jobs/{job_id}`
 Détail d'un job avec état Celery en temps réel.
@@ -161,7 +225,7 @@ Générer un rapport. Rôle requis : `analyst` ou `admin`.
 ```json
 {
   "scan_job_id": 5,
-  "title": "Audit réseau – 2025",
+  "title": "Audit réseau 2026",
   "format": "pdf"
 }
 ```
@@ -174,17 +238,30 @@ Générer un rapport. Rôle requis : `analyst` ou `admin`.
 ---
 
 ### GET `/api/reports/`
-Lister ses rapports.
+Lister ses rapports (admin et reader voient tous les rapports).
 
 ### GET `/api/reports/{id}/download`
 Télécharger un rapport (PDF, HTML ou CSV).
 
+### GET `/api/reports/{id}/view`
+Obtenir le rendu HTML du rapport (alignement visuel avec le PDF).
+
+### DELETE `/api/reports/{id}`
+Supprimer un rapport. Rôle requis : `analyst` ou `admin`.
+
+---
+
+## Défensif `/api/defensive`
+
+### GET `/api/defensive/siem/events`
+Lister les événements indexés dans Elasticsearch. Rôle requis : `admin`.
+
+### GET `/api/defensive/siem/stats`
+Statistiques agrégées (par type, par sévérité, par jour). Rôle requis : `admin`.
+
 ---
 
 ## Dashboard `/api/dashboard`
-
-### GET `/api/dashboard/`
-Retourne la page HTML du dashboard (Jinja2).
 
 ### GET `/api/dashboard/stats`
 KPIs JSON pour le dashboard.
@@ -205,9 +282,9 @@ KPIs JSON pour le dashboard.
 
 | Code | Description |
 |------|-------------|
-| 400 | Données invalides (module inconnu, email déjà pris…) |
+| 400 | Données invalides (module inconnu, email déjà pris, action interdite sur soi-même) |
 | 401 | Token absent ou expiré |
 | 403 | Rôle insuffisant |
 | 404 | Ressource introuvable |
-| 422 | Erreur de validation Pydantic |
+| 422 | Erreur de validation Pydantic (ex. email invalide) |
 | 500 | Erreur interne serveur |

@@ -1,12 +1,12 @@
-# Livrables Pédagogiques – Mastère Cybersécurité
+# Livrables Pédagogiques - Mastère Cybersécurité
 
 ## Rappel des livrables exigés
 
-Selon le cadre pédagogique (Projet d'Études – CS – 2025), deux livrables principaux sont à rendre **6 mois après le kick-off** :
+Selon le cadre pédagogique (Projet d'Études - CS - 2025), deux livrables principaux sont à rendre **6 mois après le kick-off** :
 
 ---
 
-## Livrable 1 – Vidéo MVP (15-20 minutes)
+## Livrable 1 - Vidéo MVP (15-20 minutes)
 
 ### Objectif
 Démontrer le MVP en action devant un jury.
@@ -24,7 +24,7 @@ Démontrer le MVP en action devant un jury.
 ### Scénario de démo recommandé
 
 ```
-1. Connexion sur l'interface ToolboxV8 (http://localhost:3000/dashboard, rôle analyst)
+1. Connexion sur l'interface ToolboxV8 (https://localhost/dashboard, rôle analyst)
 2. Lancer un module Recon sur une VM cible (ex: Metasploitable2)
 3. Voir les résultats en temps réel sur le dashboard
 4. Simuler une attaque (scan vuln + exploit SQLmap)
@@ -36,13 +36,13 @@ Démontrer le MVP en action devant un jury.
 
 ### Format de livraison
 
-**Option 1 – ZIP** :
+**Option 1 - ZIP** :
 ```
 PE_2526_codepromo_noms.zip
 └── PE-2526_codepromo_NomPrenom.mp4
 ```
 
-**Option 2 – YouTube** :
+**Option 2 - YouTube** :
 ```
 PE_2526_codepromo_noms.txt (contient le lien YouTube non répertorié)
 ```
@@ -55,7 +55,7 @@ PE_2526_codepromo_noms.txt (contient le lien YouTube non répertorié)
 
 ---
 
-## Livrable 2 – Document Technique Final
+## Livrable 2 - Document Technique Final
 
 ### Rendu Groupe (PDF)
 

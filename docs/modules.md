@@ -1,4 +1,4 @@
-# Modules ToolboxV8 – Référence
+# Modules ToolboxV8 - Référence
 
 Tous les outils offensifs sont **préinstallés dans l'image Kali Rolling** du worker Celery (voir [architecture.md §8](architecture.md)). Le retour de chaque outil est normalisé :
 
@@ -18,7 +18,35 @@ Le rapport PDF reprend ces champs un par un.
 
 ## Modules offensifs
 
-### 1. Reconnaissance (`recon`)
+### 1. Reconnaissance passive (`passive_recon`)
+
+**Fichier** : [backend/app/modules/offensive/passive_recon.py](../backend/app/modules/offensive/passive_recon.py)
+
+**Outils** : génération et ouverture de **Google Dorks**, **Bing Dorks** et **DuckDuckGo Dorks** dans le navigateur. Aucun trafic réseau direct vers la cible : on interroge uniquement les moteurs de recherche.
+
+**Catalogue de 24 templates** organisé en 3 catégories :
+
+| Catégorie | Exemples de dorks |
+|-----------|-------------------|
+| Mot-clé | `intitle:"<cible>"`, `inurl:"<cible>"`, `"<cible>" filetype:pdf`, `"<cible>" intext:password`, `"<cible>" ext:log` |
+| Réseaux sociaux | `site:linkedin.com/in "<cible>"`, `site:twitter.com "<cible>"`, `site:github.com "<cible>"`, `site:pastebin.com "<cible>"`, `site:reddit.com "<cible>"` |
+| Domaine | `site:<cible>`, `site:<cible> filetype:pdf`, `site:<cible> intitle:"index of"`, `site:<cible> inurl:admin`, `site:<cible> ext:env OR ext:bak` |
+
+**Options UI** :
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `target` | string | Mot-clé, nom d'entreprise, personne ou domaine |
+| `dorks` | array | Liste des templates cochés (et/ou dorks personnalisés saisis manuellement) |
+| `engine` | enum | `google` (défaut), `bing` ou `duckduckgo` |
+
+**Comportement** : à la soumission, chaque dork est ouvert dans un onglet séparé. Les requêtes sont aussi loggées dans le job pour générer un rapport PDF avec la liste exacte des dorks utilisés.
+
+> Ce module est **passif** : il ne touche jamais la cible, seulement les moteurs de recherche. Idéal pour de l'OSINT en amont d'un pentest sans laisser de trace côté cible.
+
+---
+
+### 2. Reconnaissance active (`recon`)
 
 **Fichier** : [backend/app/modules/offensive/recon.py](../backend/app/modules/offensive/recon.py)
 
@@ -56,13 +84,13 @@ Le rapport PDF reprend ces champs un par un.
 
 ---
 
-### 2. Scan de vulnérabilités (`scan`)
+### 3. Scan de vulnérabilités (`scan`)
 
 **Fichier** : [backend/app/modules/offensive/scan.py](../backend/app/modules/offensive/scan.py)
 
 **Outils** : `nmap --script=<catégorie>`, `nikto`, `sslyze` (binaire Kali).
 
-**Profils Nmap NSE** (chips UI) — catégorie de scripts appliquée :
+**Profils Nmap NSE** (chips UI) : catégorie de scripts appliquée :
 
 | Profil | Scripts |
 |--------|---------|
@@ -73,7 +101,7 @@ Le rapport PDF reprend ces champs un par un.
 
 Timeout fixé à **20 minutes** (cible un port précis avec l'option `port` si ta cible a beaucoup de ports ouverts).
 
-**Profils Nikto** (chips UI) — timeout Python adapté par profil :
+**Profils Nikto** (chips UI) : timeout Python adapté par profil :
 
 | Profil | Tuning | Timeout |
 |--------|--------|---------|
@@ -82,7 +110,7 @@ Timeout fixé à **20 minutes** (cible un port précis avec l'option `port` si t
 | Full | `-Tuning 0123456789abc` (tous les modules) | 60 min |
 | Evasion | `-Tuning x -evasion 1` | 15 min |
 
-**Profils SSLyze** (chips UI) — sslyze ≥ 5.x, `--regular` a disparu, on passe les scans individuellement ou via `--mozilla_config` :
+**Profils SSLyze** (chips UI) : sslyze ≥ 5.x, `--regular` a disparu, on passe les scans individuellement ou via `--mozilla_config` :
 
 | Profil | Arguments |
 |--------|-----------|
@@ -104,7 +132,7 @@ Timeout fixé à **20 minutes** (cible un port précis avec l'option `port` si t
 
 ---
 
-### 3. Exploitation (`exploit`)
+### 4. Exploitation (`exploit`)
 
 **Fichier** : [backend/app/modules/offensive/exploit.py](../backend/app/modules/offensive/exploit.py)
 
@@ -112,7 +140,7 @@ Timeout fixé à **20 minutes** (cible un port précis avec l'option `port` si t
 
 Le dropdown **Outil d'exploitation** sélectionne un sous-module (`mode`) :
 
-#### 3.1 SQLmap (`mode=sqlmap`)
+#### 4.1 SQLmap (`mode=sqlmap`)
 
 | Profil | Arguments (batch + --output-dir=/tmp/sqlmap imposés) |
 |--------|------|
@@ -123,7 +151,7 @@ Le dropdown **Outil d'exploitation** sélectionne un sous-module (`mode`) :
 
 Option : `sqlmap_profile` (enum, défaut `standard`).
 
-#### 3.2 Hydra (`mode=hydra`)
+#### 4.2 Hydra (`mode=hydra`)
 
 | Option | Description |
 |--------|-------------|
@@ -135,7 +163,7 @@ Option : `sqlmap_profile` (enum, défaut `standard`).
 
 L'UI propose 2 « sources » pour users et 3 pour passwords (fichier uploadé / modale manuelle / rockyou.txt).
 
-#### 3.3 John the Ripper (`mode=john`)
+#### 4.3 John the Ripper (`mode=john`)
 
 La **cible** est le hash brut (ou un chemin de fichier `/tmp/…`).
 
@@ -146,14 +174,14 @@ La **cible** est le hash brut (ou un chemin de fichier `/tmp/…`).
 | `rules` | bool, active `--rules` (mutations leet, suffixes…) |
 | `timeout` | secondes, défaut 180 |
 
-#### 3.4 Metasploit (`mode=msf`)
+#### 4.4 Metasploit (`mode=msf`)
 
 | Profil | Module MSF | Options auto |
 |--------|-----------|--------------|
 | Handler | `exploit/multi/handler` | `PAYLOAD=generic/shell_reverse_tcp`, `LHOST=0.0.0.0`, `LPORT=4444` |
 | EternalBlue | `exploit/windows/smb/ms17_010_eternalblue` | `PAYLOAD=windows/x64/meterpreter/reverse_tcp` |
 | PortScan | `auxiliary/scanner/portscan/tcp` | `PORTS=1-65535` |
-| SMB Vuln | `auxiliary/scanner/smb/smb_ms17_010` | — |
+| SMB Vuln | `auxiliary/scanner/smb/smb_ms17_010` | (aucune option spécifique) |
 
 Chaque profil ajoute automatiquement `RHOSTS=<cible>`. Requiert un démon `msfrpcd` joignable (`msf_host`, `msf_port`, `msf_password`).
 
@@ -161,7 +189,7 @@ Chaque profil ajoute automatiquement `RHOSTS=<cible>`. Requiert un démon `msfrp
 
 ---
 
-### 4. Scan Web / API (`web_scan`)
+### 5. Scan Web / API (`web_scan`)
 
 **Fichier** : [backend/app/modules/offensive/web_scan.py](../backend/app/modules/offensive/web_scan.py)
 
@@ -196,7 +224,7 @@ Chaque profil ajoute automatiquement `RHOSTS=<cible>`. Requiert un démon `msfrp
 
 ---
 
-### 5. Post-exploitation (`post_exploit`)
+### 6. Post-exploitation (`post_exploit`)
 
 **Fichier** : [backend/app/modules/offensive/post_exploit.py](../backend/app/modules/offensive/post_exploit.py)
 
@@ -211,19 +239,19 @@ Actions :
 
 ## Modules défensifs
 
-### 6. SIEM (`siem`)
+### 7. SIEM (`siem`)
 
 **Fichier** : [backend/app/modules/defensive/siem.py](../backend/app/modules/defensive/siem.py)
 
 Interface avec Elasticsearch :
 
-- `index_event(type, data)` — indexe un événement
-- `search_events(query)` — recherche full-text
-- `get_recent_alerts()` — dernières alertes
+- `index_event(type, data)` : indexe un événement
+- `search_events(query)` : recherche full-text
+- `get_recent_alerts()` : dernières alertes
 
 Tous les résultats de scan sont automatiquement indexés dans `pentest-logs-*`.
 
-### 7. IDS (`ids`)
+### 8. IDS (`ids`)
 
 **Fichier** : [backend/app/modules/defensive/ids.py](../backend/app/modules/defensive/ids.py)
 
@@ -233,21 +261,21 @@ Parse les alertes Snort depuis `/var/log/snort/alert`. Règles locales fournies 
 - Brute-force SSH / HTTP Basic
 - SQL Injection / XSS / Directory Traversal
 
-### 8. Réponse active (`response`)
+### 9. Réponse active (`response`)
 
 **Fichier** : [backend/app/modules/defensive/response.py](../backend/app/modules/defensive/response.py)
 
-- `block_ip(ip, reason)` — règle iptables `DROP`
-- `unblock_ip(ip)` — suppression de la règle
-- `isolate_host(ip)` — isolation réseau (à connecter à un hyperviseur)
-- `send_alert(message, severity)` — alerte vers le SIEM
+- `block_ip(ip, reason)` : règle iptables `DROP`
+- `unblock_ip(ip)` : suppression de la règle
+- `isolate_host(ip)` : isolation réseau (à connecter à un hyperviseur)
+- `send_alert(message, severity)` : alerte vers le SIEM
 
-### 9. Forensique (`forensic`) — bonus
+### 10. Forensique (`forensic`) (bonus)
 
 **Fichier** : [backend/app/modules/defensive/forensic.py](../backend/app/modules/defensive/forensic.py)
 
-- `ClamAV` — antivirus open-source
-- `VirusTotal API v3` — analyse multi-moteurs
+- `ClamAV` : antivirus open-source
+- `VirusTotal API v3` : analyse multi-moteurs
 
 Méthodes : `scan_file(path)`, `get_vt_result(analysis_id)`.
 
@@ -275,11 +303,11 @@ Le chemin retourné est directement utilisable comme `user_file` / `pass_file` /
 
 Toutes les sorties d'outils offensifs alimentent le rapport via la fonction `_format_tool_data(tool, data)` du générateur PDF ([generator.py](../backend/app/reporting/generator.py)), qui extrait :
 
-- `error` — encart rouge si échec
-- `command` — ligne inline monospace
-- `main_output` (`output` / `raw_xml` / `stdout`) — bloc préformaté noir
-- `stderr` — bloc noir séparé
-- `results_list` (`credentials` / `cracked`) — liste verte
-- `extras_json` — JSON indenté pour les clés non interprétées
+- `error` : encart rouge si échec
+- `command` : ligne inline monospace
+- `main_output` (`output` / `raw_xml` / `stdout`) : bloc préformaté noir
+- `stderr` : bloc noir séparé
+- `results_list` (`credentials` / `cracked`) : liste verte
+- `extras_json` : JSON indenté pour les clés non interprétées
 
 Le résultat : chaque outil apparaît dans le PDF avec sa sortie CLI **telle qu'en terminal**.

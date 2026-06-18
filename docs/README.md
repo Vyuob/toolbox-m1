@@ -4,39 +4,37 @@ Bienvenue dans la documentation complète de **ToolboxV8**, la toolbox automatis
 
 ---
 
-## 📌 Documents autoritaires (à jour — juin 2026)
+## 📌 Documents principaux (juin 2026)
 
-Ces deux documents sont la **source de vérité** sur l'état réel du projet :
+Ces documents sont la **source de vérité** sur l'état réel du projet :
 
 | Document | Description |
 |----------|-------------|
 | 📘 **[Rapport final de groupe (PDF)](PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf)** | Rapport technique complet : architecture, modules, KPIs réels, REX, politiques de sécurité, conclusion. **Document principal à lire.** |
 | 📋 **[guide_test_outils.txt](guide_test_outils.txt)** | Guide pratique : configs validées pour chaque outil avec cibles, profils et résultats attendus. **Pour reproduire les démos.** |
-| 📝 [Rendu individuel — Titouan (PDF)](PE-2526_M1CSD_AKA-A-MFOULA_Titouan.pdf) | Analyse personnelle, perspectives, compétences développées |
-| 📝 [Rendu individuel — Ayoub (PDF)](PE-2526_M1CSD_BEN-RACHED_Ayoub.pdf) | Analyse personnelle, perspectives, compétences développées |
-| 📝 [Rendu individuel — Abdallah (PDF)](PE-2526_M1CSD_NASR_Abdallah.pdf) | Analyse personnelle, perspectives, compétences développées |
+| 📝 [Rendu individuel Titouan (PDF)](PE-2526_M1CSD_AKA-A-MFOULA_Titouan.pdf) | Analyse personnelle, perspectives, compétences développées |
+| 📝 [Rendu individuel Ayoub (PDF)](PE-2526_M1CSD_BEN-RACHED_Ayoub.pdf) | Analyse personnelle, perspectives, compétences développées |
+| 📝 [Rendu individuel Abdallah (PDF)](PE-2526_M1CSD_NASR_Abdallah.pdf) | Analyse personnelle, perspectives, compétences développées |
 
 ---
 
-## 📂 Documents de référence (snapshot avril/juin 2026)
+## 📂 Documents techniques détaillés
 
-Ces documents sont des **références techniques pointues** sur des aspects précis. Ils datent du sprint S7 (avant l'ajout de passive_recon, Caddy HTTPS, ZAP daemon intégré, cible vulnérable target et CI/CD). En cas de divergence, **le rapport final fait foi**.
+| Document | Description |
+|----------|-------------|
+| [architecture.md](architecture.md) | Architecture (split api/web, Caddy HTTPS, flux d'auth, orchestration Celery, RBAC) |
+| [installation.md](installation.md) | Guide d'installation pas à pas (Docker, configuration, comptes seedés) |
+| [usage.md](usage.md) | Guide d'utilisation de l'interface et de l'API |
+| [modules.md](modules.md) | Description détaillée de chaque module (passive_recon, recon, scan, exploit, web_scan, defensive) |
+| [api.md](api.md) | Référence complète de l'API REST (endpoints auth, users, modules, reports, defensive) |
+| [securite.md](securite.md) | Authentification, RBAC à 3 rôles, chiffrement, audit, conformité |
+| [livrables.md](livrables.md) | Livrables pédagogiques et correspondance avec le cadre |
 
-| Document | Description | Statut |
-|----------|-------------|--------|
-| [architecture.md](architecture.md) | Architecture (split api/web, flux d'auth, orchestration Celery) | ⚠️ Snapshot — Caddy/ZAP/target non décrits |
-| [installation.md](installation.md) | Guide d'installation pas à pas | ⚠️ Snapshot — étape HTTPS/CA non décrite |
-| [usage.md](usage.md) | Guide d'utilisation de l'interface et de l'API | ⚠️ Snapshot — module passive_recon non décrit |
-| [modules.md](modules.md) | Description détaillée de chaque module et de ses profils | ⚠️ Snapshot — 4 modules listés (passive_recon manque) |
-| [api.md](api.md) | Référence complète de l'API REST | À jour pour les endpoints existants |
-| [securite.md](securite.md) | Authentification, RBAC, chiffrement, conformité | ⚠️ Snapshot — HTTPS Caddy non décrit |
-| [livrables.md](livrables.md) | Livrables pédagogiques et correspondance cadre | ⚠️ Snapshot |
-
-> 💡 **Pour le détail à jour**, voir [le rapport final de groupe (PDF)](PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf) :
-> - §1.4 équipe — §3.2 sprints (S1→S10) — §4 solution technique
-> - §5 modules pentest (5 offensifs + 4 défensifs) — §6 KPIs réels mesurés
-> - §7 sécurité (incluant §7.6 Caddy HTTPS et §7.7 politiques) — §8 SIEM
-> - §9 REX — §10 conclusion et limites — §11 annexes
+> 💡 **Pour le détail complet avec KPIs et REX**, voir [le rapport final de groupe (PDF)](PE-2526_M1CSD_NASR_BEN-RACHED_AKA-A-MFOULA.pdf) :
+> - §1.4 équipe, §3.2 sprints (S1 à S10), §4 solution technique
+> - §5 modules pentest (5 offensifs + 4 défensifs), §6 KPIs réels mesurés
+> - §7 sécurité (incluant §7.6 Caddy HTTPS et §7.7 politiques), §8 SIEM
+> - §9 REX, §10 conclusion et limites, §11 annexes
 
 ---
 
@@ -49,12 +47,12 @@ OSINT → Reconnaissance → Scan de vulnérabilités → Exploitation → Scan 
   ↑                                                                    ↓
 SIEM ←──────────── Visualisation Elasticsearch ──────────────────────  ┘
   ↓
-Snort (IDS — règles préparées)
+Snort (IDS, règles préparées)
   ↓
 Response (iptables, isolation)
 ```
 
-Le parcours utilisateur tient en 3 clics : **choisir le module → saisir la cible → cliquer sur Lancer**. Le rapport PDF est généré automatiquement et reprend la sortie CLI de chaque outil.
+Le parcours utilisateur tient en 3 clics : **choisir le module, saisir la cible, cliquer sur Lancer**. Le rapport PDF est généré automatiquement et reprend la sortie CLI de chaque outil.
 
 ### Technologies principales
 
@@ -63,14 +61,14 @@ Le parcours utilisateur tient en 3 clics : **choisir le module → saisir la cib
 - **Base de données** : PostgreSQL 16
 - **File de tâches** : Redis 7 + Celery 5
 - **SIEM** : ELK Stack (Elasticsearch 8.13 + Logstash + Kibana)
-- **IDS** : Snort 3 (règles préparées, conteneur non déployé — cf. §10.2)
+- **IDS** : Snort 3 (règles préparées, conteneur non déployé, cf. §10.2)
 - **Stockage** : MinIO (S3-compatible)
 - **Worker pentest** : Kali Linux Rolling (image officielle, multi-stage build)
-- **Reverse proxy TLS** : Caddy 2 (HTTPS auto via CA interne)
+- **Reverse proxy TLS** : Caddy 2 (HTTPS auto via CA interne, Let's Encrypt en prod)
 - **Scanner web** : OWASP ZAP 2.17 (daemon API intégré au compose)
-- **Cible vulnérable** : conteneur SSH faible (`pentest_target` — démos Hydra)
+- **Cible vulnérable** : conteneur SSH faible (`pentest_target` pour les démos Hydra)
 - **Reporting** : ReportLab (PDF) + Jinja2 (HTML optionnel)
-- **CI/CD** : GitHub Actions + GitLab CI (lint → tests → build Docker)
+- **CI/CD** : GitHub Actions + GitLab CI (lint, tests, build Docker)
 - **Conteneurisation** : Docker + Docker Compose
 
 ### Liens rapides

@@ -1,4 +1,4 @@
-# Guide d'Installation – ToolboxV8
+# Guide d'Installation - ToolboxV8
 
 ## Prérequis
 
@@ -141,8 +141,8 @@ celery -A app.tasks.celery_app worker --loglevel=info
 | Service | URL | Identifiants par défaut |
 |---------|-----|------------------------|
 | Interface Web / Login | http://localhost:3000/login | Créer via `/api/auth/register` |
-| API REST | http://localhost:8000/api/ | – |
-| Swagger UI | http://localhost:8000/api/docs | – |
+| API REST | http://localhost:8000/api/ | (token Bearer) |
+| Swagger UI | http://localhost:8000/api/docs | (token Bearer) |
 | Kibana (SIEM) | http://localhost:5601 | elastic / changeme |
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
 

@@ -1,14 +1,24 @@
-# Guide d'Utilisation – ToolboxV8
+# Guide d'Utilisation - ToolboxV8
 
 ## 1. Connexion
 
-Accéder à : `http://localhost:3000/dashboard` (redirige vers `/login` si non authentifié).
+Accéder à : `https://localhost/dashboard` (redirige vers `/login` si non authentifié).
 
-Se connecter avec vos identifiants via le formulaire du service **web**. Celui-ci effectue `POST /login` qui appelle en interne `POST /api/auth/token` et **pose le JWT dans un cookie `HttpOnly`** (`access_token=...`).
+> Le service web est exposé en HTTPS via Caddy (port 443). Une CA interne génère le certificat ; pour éviter le warning navigateur, importer le certificat racine une fois (cf. README).
 
-> Le cookie HttpOnly n'est **pas** accessible en JavaScript côté navigateur : c'est volontairement plus sûr que l'ancien stockage en `localStorage`, car cela bloque l'exfiltration en cas de faille XSS.
+Trois comptes seedés au premier démarrage :
 
-Pour les **clients externes** (scripts, CI, Postman…), il reste toujours possible de récupérer un JWT classique avec `POST /api/auth/token` et de l'envoyer via l'en-tête `Authorization: Bearer <token>`.
+| Compte | Mot de passe | Rôle |
+|--------|--------------|------|
+| `admin` | `admin123` | Tout, y compris gestion des utilisateurs |
+| `analyst` | `analyst123` | Lancement de scans et génération de rapports |
+| `reader` | `reader123` | Consultation seule des rapports |
+
+Se connecter avec ses identifiants via le formulaire du service **web**. Celui-ci effectue `POST /login` qui appelle en interne `POST /api/auth/token` et **pose le JWT dans un cookie `HttpOnly`** (`access_token=...`).
+
+> Le cookie HttpOnly n'est pas accessible en JavaScript côté navigateur : c'est volontairement plus sûr que l'ancien stockage en `localStorage`, car cela bloque l'exfiltration en cas de faille XSS.
+
+Pour les **clients externes** (scripts, CI, Postman), il reste toujours possible de récupérer un JWT classique avec `POST /api/auth/token` et de l'envoyer via l'en-tête `Authorization: Bearer <token>`.
 
 ---
 
@@ -20,41 +30,46 @@ Le dashboard affiche :
 - **Derniers jobs** : liste des 10 dernières tâches avec statut en temps réel
 - **Derniers rapports** : accès direct au téléchargement
 
+La barre latérale est filtrée selon le rôle :
+- `reader` : voit uniquement Dashboard et Rapports
+- `analyst` : voit aussi Modules
+- `admin` : voit aussi SIEM, Utilisateurs et la section Défensif
+
 ---
 
 ## 3. Lancer un module
 
 ### Via l'interface
 
-1. Aller sur **Modules** dans la barre latérale
+1. Aller sur **Modules** dans la barre latérale (visible pour `analyst` et `admin`)
 2. Sélectionner le module voulu
-3. Renseigner la cible (IP, domaine ou URL)
-4. Configurer les options avancées si nécessaire
+3. Renseigner la cible (mot-clé OSINT, IP, domaine ou URL selon le module)
+4. Choisir un profil via les chips ou activer les toggles d'outils
 5. Cliquer sur **Lancer**
 
 Le job s'exécute en arrière-plan. Son statut se met à jour automatiquement.
 
+### Modules disponibles
+
+| Module | Cible | Profils / outils |
+|--------|-------|------------------|
+| `passive_recon` | Mot-clé, entreprise, domaine | Catalogue de 24 dorks (Google, Bing, DuckDuckGo) en 3 catégories : Mot-clé, Réseaux sociaux, Domaine. Ouverture multi-onglets, dorks personnalisés possibles. |
+| `recon` | IP, domaine | Nmap (Quick / Standard / Full TCP / Stealth), DNS, whois, WhatWeb |
+| `scan` | IP, domaine | Nmap NSE (Quick / Standard / Full / Safe), Nikto (Quick / Standard / Full / Evasion), SSLyze (Cert / Standard / Full) |
+| `exploit` | URL, IP, hash | SQLmap (Quick / Standard / Aggressive / Dump), Hydra, John, Metasploit (handler / EternalBlue / PortScan / SMB) |
+| `web_scan` | URL | OWASP ZAP Spider (Quick / Standard / Deep), ZAP Active (Quick / OWASP / Full), Gobuster, Dependency-Check |
+| `response` | IP | Blocage iptables, isolation host, alerte SIEM |
+
 ### Profils par chips
 
-Les modules offensifs proposent des **profils prédéfinis sous forme de chips**, plus besoin d'éditer la ligne de commande :
-
-- **Nmap (Reconnaissance)** : Quick / Standard / Full TCP / Stealth — tous incluent `-Pn` par défaut pour scanner les hosts qui bloquent ICMP.
-- **Nmap NSE (Scan Vulnérabilités)** : Quick / Standard / Full / Safe
-- **Nikto** : Quick / Standard / Full / Evasion — timeout adapté par profil (10 à 60 min)
-- **SSLyze** : Cert / Standard / Full — `--regular` obsolète remplacé par `--mozilla_config intermediate` (sslyze ≥ 5.x)
-- **SQLmap** : Quick / Standard / Aggressive / Dump
-- **MSF (Metasploit)** : Handler / EternalBlue / PortScan / SMB
-- **ZAP Spider** : Quick / Standard / Deep
-- **ZAP Active** : Quick / OWASP / Full
-
-Il suffit de cliquer sur la chip correspondante pour charger les bons paramètres.
+Les modules offensifs proposent des **profils prédéfinis sous forme de chips**, plus besoin d'éditer la ligne de commande. Il suffit de cliquer sur la chip correspondante pour charger les bons paramètres.
 
 ### Wordlists custom (Hydra / John)
 
 Les modules **Hydra** et **John** acceptent 3 sources de wordlist au choix :
 
 1. Un **fichier uploadé** via `POST /api/modules/wordlist` (stocké dans le volume partagé `wordlists_data`)
-2. Une **liste manuelle** (saisie dans l'UI, un mot par ligne)
+2. Une **liste manuelle** (saisie dans une modale, un mot par ligne)
 3. La **rockyou.txt** préinstallée dans l'image worker Kali
 
 ### Via l'API
@@ -62,7 +77,7 @@ Les modules **Hydra** et **John** acceptent 3 sources de wordlist au choix :
 ```bash
 # Obtenir un token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token \
-  -d "username=admin&password=Admin1234!" | jq -r .access_token)
+  -d "username=admin&password=admin123" | jq -r .access_token)
 
 # Lancer une reconnaissance
 curl -X POST http://localhost:8000/api/modules/launch \
@@ -73,18 +88,7 @@ curl -X POST http://localhost:8000/api/modules/launch \
 
 ---
 
-## 4. Modules disponibles
-
-| Module | Cible | Options clés |
-|--------|-------|-------------|
-| `recon` | IP, domaine | `whois: true`, `nmap_args` (défaut `-sV -O -Pn --top-ports 1000`) |
-| `scan` | IP, domaine | `nmap_vuln: true`, `nikto: true`, `sslyze: true`, `port` (défaut `"80,443"`), `nmap_vuln_profile`, `nikto_profile`, `sslyze_profile` |
-| `exploit` | URL/IP | `mode: sqlmap\|hydra\|msf\|john` |
-| `web_scan` | URL | `zap: true`, `scan_type: spider\|active` |
-
----
-
-## 5. Suivre un job
+## 4. Suivre un job
 
 ```bash
 # Lister ses jobs
@@ -96,7 +100,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/modules/jobs/1
 
 ---
 
-## 6. Générer un rapport
+## 5. Générer un rapport
 
 ```bash
 # Générer un rapport PDF depuis un job terminé (ReportLab)
@@ -110,18 +114,46 @@ curl -H "Authorization: Bearer $TOKEN" \
   http://localhost:8000/api/reports/1/download -o rapport.pdf
 ```
 
-> Les rapports sont générés en **PDF** via **ReportLab**.
+> Les rapports sont générés en **PDF** via **ReportLab**, avec une vue HTML alignée sur le PDF pour la prévisualisation dans le navigateur.
 
 ---
 
-## 7. SIEM – Kibana
+## 6. Gestion des utilisateurs (admin)
+
+La page `/admin/users` (réservée au rôle `admin`) permet :
+
+- Créer un compte avec rôle au choix
+- Modifier le rôle ou le mot de passe d'un compte existant
+- Activer ou désactiver un compte
+- Supprimer un compte
+
+Toutes ces actions sont tracées dans la table `audit_logs`. Un admin ne peut pas se rétrograder, se désactiver ni se supprimer lui-même.
+
+L'équivalent en API :
+
+```bash
+# Lister les comptes
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/users/
+
+# Créer un compte
+curl -X POST http://localhost:8000/api/users/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"bob","email":"bob@toolboxv8.fr","password":"BobSecure1!","role":"analyst"}'
+```
+
+---
+
+## 7. SIEM avec Kibana
 
 1. Accéder à `http://localhost:5601`
 2. Aller dans **Discover**
 3. Créer un index pattern : `pentest-logs-*`
 4. Visualiser les événements de scan, alertes IDS, actions de réponse
 
-Dashboards recommandés à créer :
+Une vue simplifiée intégrée est aussi disponible dans l'app sur `/siem` (admin uniquement), avec des graphiques Chart.js.
+
+Dashboards recommandés à créer dans Kibana :
 - Vue chronologique des scans
 - Alertes Snort par classification
 - Actions de réponse (blocages IP)
